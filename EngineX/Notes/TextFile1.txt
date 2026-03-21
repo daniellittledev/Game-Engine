@@ -1,0 +1,53 @@
+//// get the axis to rotate around the x-axis. 
+                //Vector3 Axis = Vector3.Cross(Look, Up);
+                //// To be able to use the quaternion conjugate, the axis to
+                //// rotate around must be normalized.
+                //Axis.Normalize();
+
+                //// Rotate around the y axis
+                //RotateCamera(Pitch , Axis.X, Axis.Y, Axis.Z);
+                //// Rotate around the x axis
+                //RotateCamera(Heading , 0, 1, 0);
+
+//                if (Heading == 0 && Pitch == 0 & Roll == 0)
+//                    goto here;	
+
+//                CamRotation *= Quaternion.RotationYawPitchRoll(Heading, Pitch, Roll);
+
+//here:
+
+                Matrix tmp = new Matrix();
+                //tmp.AffineTransformation(1.0f, Position, CamRotation, Position);
+
+                Transforms.View = tmp; //* Matrix.RotationQuaternion(Quat1);
+                Transforms.SetView();
+
+
+                tmp = Matrix.RotationQuaternion( new Quaternion(-m_quatOrientation.x,
+                                               -m_quatOrientation.y,
+                                               -m_quatOrientation.z,
+                                                m_quatOrientation.w));
+
+                
+                //// Update Quaternion
+                //Quaternion additionalRot = Quaternion.RotationAxis(new Vector3(0, 1, 0), Heading)
+                //                         * Quaternion.RotationAxis(new Vector3(1, 0, 0), Pitch);
+                //CamRotation.Multiply(additionalRot);
+
+                //Look.X = 0;
+                //Look.Y = 0;
+                //Look.Z = 1;
+
+                //Matrix Rotation = Matrix.RotationQuaternion(CamRotation);
+                //Look = Vector3.TransformCoordinate(Look, tmp);
+
+                //Look.Y = (float)Math.Sin(Pitch);
+                //Single temp = (float)Math.Cos(Pitch);
+                //Look.X = (float)Math.Cos(Heading) * temp;
+                //Look.Z = (float)Math.Sin(Heading) * temp;
+                //Look.Normalize();
+
+                //Matrix Temp;
+                ////Matrix.RotationZ(Roll) * 
+                //Temp = Matrix.RotationY(Heading) * Matrix.RotationX(Pitch);
+                //Look = Vector3.TransformCoordinate(Look, Temp);

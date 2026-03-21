@@ -1,0 +1,31 @@
+                    // if we were smart and had the data
+                    // we could set the initial capacity to our max depth
+                    Stack<TriangleNode> stack = new Stack<TriangleNode>();
+
+                    // Starting Node
+                    for (TriangleNode currentNode = this;
+                        // Terminating Condition
+                        currentNode != null || stack.Count > 0;
+                        // Step forward to the right
+                        currentNode = currentNode.rightChild)
+                    {
+
+
+                        // While not at base of tree
+                        while (currentNode != null)
+                        {
+                            // Store the current Node
+                            stack.Push(currentNode);
+
+                            // Move to the left
+                            currentNode = currentNode.leftChild;
+                        }
+
+                        currentNode = stack.Pop();
+
+
+                        // Work on the current Node
+                        /////////////
+
+                        currentNode.variance += 
+                    }

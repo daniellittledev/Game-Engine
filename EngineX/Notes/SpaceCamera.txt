@@ -1,0 +1,175 @@
+//using System;
+//using System.Collections.Generic;
+//using System.Text;
+
+//using Microsoft;
+//using Microsoft.DirectX;
+//using Microsoft.DirectX.Direct3D;
+
+//namespace EngineX
+//{
+//    namespace Cameras
+//    {
+
+//        public class SpaceCamera
+//        {
+//            /// <summary>
+//            /// Rotation axis for controling the camera.
+//            /// Pitch is for moving head up/down,
+//            /// Roll rotates around nose
+//            /// and Yaw is the rotation to left/right.
+//            /// </summary>
+//            public enum RotationAxis
+//            {
+//                /// <summary>
+//                /// Pitch is for moving head up/down.
+//                /// </summary>
+//                Pitch,
+//                /// <summary>
+//                /// Roll rotates around nose.
+//                /// </summary>
+//                Roll,
+//                /// <summary>
+//                /// Yaw is the rotation to left/right.
+//                /// </summary>
+//                Yaw
+//            } // enum RotationAxis
+
+//            public Matrix ViewMatrix = Matrix.Identity;
+//            public Quaternion quaternion = Quaternion.Identity;
+
+//            /// <summary>
+//            /// Current camera position.
+//            /// </summary>
+//            public Vector3 pos = new Vector3(0,0,-1);
+
+//           /// <summary>
+//            /// Rotate around pitch, roll or yaw axis.
+//            /// </summary>
+//            /// <param name="axis">Axis</param>
+//            /// <param name="angle">Angle</param>
+//            public void Rotate(RotationAxis axis, float angle)
+//            {
+//            Rotate(
+//                axis == RotationAxis.Pitch ? new Vector3(1.0f, 0.0f, 0.0f) :
+//                    // Our world is xz based for some reason ^^ this way it works
+//                axis == RotationAxis.Roll ? new Vector3(0.0f, 0.0f, 1.0f) :
+//                new Vector3(0.0f, 1.0f, 0.0f), angle);
+//            } // Rotate(axis, angle)
+
+//            /// <summary>
+//            /// Rotate
+//            /// </summary>
+//            /// <param name="axis">Axis</param>
+//            /// <param name="angle">Angle</param>
+//            private void Rotate(Vector3 axis, float angle)
+//            {
+//                quaternion *= Quaternion.RotationAxis(axis, -angle);
+//            } // Rotate(axis, angle)
+
+//            public void update()
+//            {
+//                quaternion.Normalize();
+
+//                Quaternion q = Quaternion.Conjugate(quaternion);
+                
+//                Matrix rotMatrix = Matrix.RotationQuaternion(quaternion);
+
+//                ViewMatrix = Matrix.Translation(-pos) * rotMatrix;
+//            }
+
+//        }
+
+//    }
+//}
+
+
+//Pitch
+//QCamRotation = Quaternion.Multiply(QCamRotation, Quaternion.RotationAxis(CLeft, Factor));
+//Quaternion Q;
+//Q = Quaternion.RotationAxis(CSide, Factor);
+
+//Matrix M;
+//M = Matrix.RotationQuaternion(Q);
+
+//Roll
+//CUp = Vector3.TransformCoordinate(CUp, M);
+//CDirection = Vector3.TransformCoordinate(CDirection, M);
+
+//QCamRotation = Quaternion.Multiply(QCamRotation, Quaternion.RotationAxis(CForward, Factor));
+//Quaternion Q;
+//Q = Quaternion.RotationAxis(CDirection, Factor);
+
+//Matrix M;
+//M = Matrix.RotationQuaternion(Q);
+
+//CSide = Vector3.TransformCoordinate(CSide, M);
+//CUp = Vector3.TransformCoordinate(CUp, M);
+
+//Yaw
+//QCamRotation = Quaternion.Multiply(QCamRotation, Quaternion.RotationAxis(CUp, Factor));
+//Quaternion Q;
+//Q = Quaternion.RotationAxis(CUp, Factor);
+
+//Matrix M;
+//M = Matrix.RotationQuaternion(Q);
+
+//CSide = Vector3.TransformCoordinate( CSide , M );
+//CDirection = Vector3.TransformCoordinate( CDirection , M);
+
+//public override void Update()
+//{
+
+//float dt = 1;
+
+//CSide = Vector3.Cross(CUp,CDirection);
+
+
+//UpdateHeading(Y);
+//UpdateRoll(R);
+//UpdatePitch(P);
+
+//CUp.Normalize();
+//CSide = Vector3.Cross(CUp, CDirection);
+//CSide.Normalize();
+//CDirection = Vector3.Cross(CSide, CUp);
+//CDirection.Normalize();
+
+//CamRotation = Matrix.LookAtLH(Position, CDirection, CUp);
+
+//Quaternion Inverse = QCamRotation;
+//Inverse.Invert();
+
+//CamRotation = Matrix.RotationQuaternion(Inverse);
+
+//QCamRotation.Normalize();
+
+////xaxis
+//CLeft.X = CamRotation.M11;
+//CLeft.Y = CamRotation.M21;
+//CLeft.Z = CamRotation.M31;
+
+////yaxis
+//CUp.X = CamRotation.M12;
+//CUp.Y = CamRotation.M22;
+//CUp.Z = CamRotation.M32;
+
+////zaxis
+//CForward.X = CamRotation.M13;
+//CForward.Y = CamRotation.M23;
+//CForward.Z = CamRotation.M33;
+
+// CamRotation.Translate(Position);
+
+//CamRotation = Matrix.LookAtLH(new Vector3(2, 3, 4), new Vector3(4, 4, 4), new Vector3(0, 1, 0)); //Matrix.Translation(2, 3, 4);
+
+//Console.WriteLine(CamRotation.M11.ToString() + " " + CamRotation.M21.ToString() + " " + CamRotation.M31.ToString() + " " + CamRotation.M41.ToString());
+//Console.WriteLine(CamRotation.M12.ToString() + " " + CamRotation.M22.ToString() + " " + CamRotation.M32.ToString() + " " + CamRotation.M42.ToString());
+//Console.WriteLine(CamRotation.M13.ToString() + " " + CamRotation.M23.ToString() + " " + CamRotation.M33.ToString() + " " + CamRotation.M43.ToString());
+//Console.WriteLine(CamRotation.M14.ToString() + " " + CamRotation.M24.ToString() + " " + CamRotation.M34.ToString() + " " + CamRotation.M44.ToString());
+//}
+
+
+//public Vector3 CUp = new Vector3(0, 1, 0);
+//public Vector3 CDirection = new Vector3(0, 0, 1);
+//public Vector3 CSide = new Vector3(1, 0, 0);
