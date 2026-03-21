@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
-using Microsoft.DirectX;
-using Microsoft.DirectX.DirectInput;
+using SharpDX.DirectInput;
 
 namespace EngineX
 {
@@ -16,107 +15,97 @@ namespace EngineX
         /// </summary>
         public class Keyboard : IDisposable
         {
+            private DirectInput _directInput;
+            private SharpDX.DirectInput.Keyboard _keyboard;
+            private KeyboardState _state;
+
             /// <summary>
-            /// Initilize
+            /// Initialize keyboard input
             /// </summary>
-            /// <param name="form"></param>
             public Keyboard(Form form)
             {
-                _device = new Device(SystemGuid.Keyboard);
-                _device.SetCooperativeLevel(form, CooperativeLevelFlags.Background | CooperativeLevelFlags.NonExclusive);
-                _device.SetDataFormat(DeviceDataFormat.Keyboard);
+                _directInput = new DirectInput();
+                _keyboard = new SharpDX.DirectInput.Keyboard(_directInput);
+                _keyboard.SetCooperativeLevel(form.Handle, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
 
                 try
                 {
-                    _device.Acquire();
+                    _keyboard.Acquire();
                 }
-                catch (DirectXException ex)
+                catch (SharpDX.SharpDXException ex)
                 {
                     Console.WriteLine(ex.Message);
                 }
             }
 
             /// <summary>
-            /// Retrieve input
+            /// Retrieve input state
             /// </summary>
             public void Poll()
             {
                 try
                 {
-                    _device.Poll();
-                    _state = _device.GetCurrentKeyboardState();
+                    _keyboard.Poll();
+                    _state = _keyboard.GetCurrentState();
                 }
-                catch (NotAcquiredException)
+                catch (SharpDX.SharpDXException)
                 {
-                    // try to reqcquire the device
                     try
                     {
-                        _device.Acquire();
+                        _keyboard.Acquire();
                     }
-                    catch (InputException iex)
+                    catch (SharpDX.SharpDXException ex)
                     {
-                        Console.WriteLine(iex.Message);
-                        // could not get the device
+                        Console.WriteLine(ex.Message);
                     }
-                }
-                catch (InputException ex2)
-                {
-                    Console.WriteLine(ex2.Message);
                 }
             }
 
             /// <summary>
-            /// Retrieve State
+            /// Retrieve current keyboard state
             /// </summary>
             public KeyboardState State
             {
                 get { return _state; }
             }
 
-            # region Dispose Pattern
             /// <summary>
-            /// Dispose object
+            /// Check if a key is currently pressed
             /// </summary>
+            public bool IsKeyDown(Key key)
+            {
+                return _state != null && _state.IsPressed(key);
+            }
+
+            #region Dispose Pattern
+
             public void Dispose()
             {
                 Dispose(true);
                 GC.SuppressFinalize(this);
             }
+
             protected virtual void Dispose(bool disposing)
             {
-                if (!this._disposed)
+                if (!_disposed)
                 {
                     if (disposing)
                     {
-                        // Free other state (managed objects).
+                        if (_keyboard != null) { _keyboard.Unacquire(); _keyboard.Dispose(); }
+                        if (_directInput != null) { _directInput.Dispose(); }
                     }
-                    // Free your own state (unmanaged objects).
-                    // Set large fields to null.
-                    //                if ( _device != null )
-                    //                    _device.Unacquire ( );
                 }
                 _disposed = true;
             }
 
-            // Use C# destructor syntax for finalization code.
             ~Keyboard()
             {
-                // Simply call Dispose(false).
                 Dispose(false);
             }
 
             private bool _disposed;
 
-            # endregion Dispose Pattern
-
-            /// <summary>
-            /// Keyboard Device
-            /// </summary>
-            private Device _device;
-            /// <summary>
-            /// Keyboard State
-            /// </summary>
-            private KeyboardState _state;
+            #endregion
         }
 
         /// <summary>
@@ -124,58 +113,54 @@ namespace EngineX
         /// </summary>
         public class Mouse : IDisposable
         {
+            private DirectInput _directInput;
+            private SharpDX.DirectInput.Mouse _mouse;
+            private MouseState _state;
+
             /// <summary>
-            /// Initilize
+            /// Initialize mouse input
             /// </summary>
-            /// <param name="form"></param>
             public Mouse(Form form)
             {
-                _device = new Device(SystemGuid.Mouse);
-                _device.SetCooperativeLevel(form, CooperativeLevelFlags.Background | CooperativeLevelFlags.NonExclusive);
-                _device.SetDataFormat(DeviceDataFormat.Mouse);
+                _directInput = new DirectInput();
+                _mouse = new SharpDX.DirectInput.Mouse(_directInput);
+                _mouse.SetCooperativeLevel(form.Handle, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
 
                 try
                 {
-                    _device.Acquire();
+                    _mouse.Acquire();
                 }
-                catch (DirectXException dex)
+                catch (SharpDX.SharpDXException ex)
                 {
-                    Console.WriteLine(dex.Message);
+                    Console.WriteLine(ex.Message);
                 }
             }
 
             /// <summary>
-            /// Retrieve Input
+            /// Retrieve input state
             /// </summary>
             public void Poll()
             {
                 try
                 {
-                    _device.Poll();
-                    _state = _device.CurrentMouseState;
-                    _buttonBuffer = _state.GetMouseButtons();
+                    _mouse.Poll();
+                    _state = _mouse.GetCurrentState();
                 }
-                catch (NotAcquiredException)
+                catch (SharpDX.SharpDXException)
                 {
-                    // try to reqcquire the device
                     try
                     {
-                        _device.Acquire();
+                        _mouse.Acquire();
                     }
-                    catch (InputException iex)
+                    catch (SharpDX.SharpDXException ex)
                     {
-                        Console.WriteLine(iex.Message);
-                        // could not get the device
+                        Console.WriteLine(ex.Message);
                     }
-                }
-                catch (InputException ex2)
-                {
-                    Console.WriteLine(ex2.Message);
                 }
             }
 
             /// <summary>
-            /// Retrieve State
+            /// Retrieve current mouse state
             /// </summary>
             public MouseState State
             {
@@ -183,14 +168,29 @@ namespace EngineX
             }
 
             /// <summary>
-            /// Retrieve Buttons
+            /// Get mouse button states (true = pressed)
             /// </summary>
-            public byte[] MouseButtons
+            public bool[] MouseButtons
             {
-                get { return _buttonBuffer; }
+                get { return _state != null ? _state.Buttons : new bool[8]; }
             }
 
-            # region Dispose Pattern
+            /// <summary>
+            /// Mouse X axis delta
+            /// </summary>
+            public int X { get { return _state != null ? _state.X : 0; } }
+
+            /// <summary>
+            /// Mouse Y axis delta
+            /// </summary>
+            public int Y { get { return _state != null ? _state.Y : 0; } }
+
+            /// <summary>
+            /// Mouse scroll wheel delta
+            /// </summary>
+            public int Z { get { return _state != null ? _state.Z : 0; } }
+
+            #region Dispose Pattern
 
             public void Dispose()
             {
@@ -200,43 +200,25 @@ namespace EngineX
 
             protected virtual void Dispose(bool disposing)
             {
-                if (!this._disposed)
+                if (!_disposed)
                 {
                     if (disposing)
                     {
-                        // Free other state (managed objects).
+                        if (_mouse != null) { _mouse.Unacquire(); _mouse.Dispose(); }
+                        if (_directInput != null) { _directInput.Dispose(); }
                     }
-                    // Free your own state (unmanaged objects).
-                    // Set large fields to null.
-                    //                if ( _device != null )
-                    //                    _device.Unacquire ( );
                 }
                 _disposed = true;
             }
 
-            // Use C# destructor syntax for finalization code.
             ~Mouse()
             {
-                // Simply call Dispose(false).
                 Dispose(false);
             }
 
             private bool _disposed;
 
-            # endregion Dispose Pattern
-
-            /// <summary>
-            /// Mouse Device
-            /// </summary>
-            private Device _device;
-            /// <summary>
-            /// Mouse State
-            /// </summary>
-            private MouseState _state;
-            /// <summary>
-            /// Mouse Buttons
-            /// </summary>
-            private byte[] _buttonBuffer;
+            #endregion
         }
 
     }

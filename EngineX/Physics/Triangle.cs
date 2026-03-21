@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Physics
 {
@@ -59,7 +58,7 @@ namespace EngineX.Physics
         /// </summary>
         public Triangle()
         {
-            i = j = k = Vector3.Empty;
+            i = j = k = Vector3.Zero;
         }
 
         /// <summary>
@@ -85,7 +84,7 @@ namespace EngineX.Physics
         {
 
             // Parameters
-            location = Vector3.Empty;
+            location = Vector3.Zero;
 
             // Barycentric
             // u = point in plane , t = distance to plane, v = point in plane 
@@ -231,7 +230,7 @@ namespace EngineX.Physics
             Vector3 p1 = k - i;
 
             normal = Vector3.Cross(p0, p1);
-            normal.Normalize();
+            normal = Vector3.Normalize(normal);
 
         }
 

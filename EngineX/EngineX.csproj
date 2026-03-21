@@ -1,121 +1,48 @@
-﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.50727</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{968BAE91-567D-4EF7-A120-39A0BC7BF903}</ProjectGuid>
+    <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>EngineX</RootNamespace>
     <AssemblyName>EngineX</AssemblyName>
-    <StartupObject>
-    </StartupObject>
+    <RootNamespace>EngineX</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x86</PlatformTarget>
+    <Optimize>true</Optimize>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="Microsoft.DirectX, Version=1.0.2902.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-    <Reference Include="Microsoft.DirectX.Direct3D, Version=1.0.2902.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-    <Reference Include="Microsoft.DirectX.Direct3DX, Version=1.0.2911.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-    <Reference Include="Microsoft.DirectX.DirectInput, Version=1.0.2902.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-    <Reference Include="Microsoft.DirectX.DirectPlay, Version=1.0.2902.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-    <Reference Include="Microsoft.DirectX.DirectSound, Version=1.0.2902.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Deployment" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
+    <PackageReference Include="SharpDX" Version="4.2.0" />
+    <PackageReference Include="SharpDX.Direct3D9" Version="4.2.0" />
+    <PackageReference Include="SharpDX.DirectInput" Version="4.2.0" />
   </ItemGroup>
+
   <ItemGroup>
-    <Compile Include="Cameras\Cameras.cs" />
-    <Compile Include="Drawing\Sprite.cs" />
-    <Compile Include="Effects\Billboards.cs" />
-    <Compile Include="Effects\Particles.cs" />
-    <Compile Include="Effects\Water.cs" />
-    <Compile Include="Environment\Sky.cs" />
-    <Compile Include="Environment\Instancing.cs" />
-    <Compile Include="External.cs" />
-    <Compile Include="Files\Map.cs" />
-    <Compile Include="GUI\Control.cs" />
-    <Compile Include="GUI\Controls\Form.cs" />
-    <Compile Include="GUI\GUI Manager.cs" />
-    <Compile Include="GUI\Intersection.cs" />
-    <Compile Include="GUI\VectorGraphics.cs" />
-    <Compile Include="MathX\Math3D.cs" />
-    <Compile Include="Network\Networking.cs" />
-    <Compile Include="Objects\AnimatedMesh.cs" />
-    <Compile Include="Objects\Mesh.cs" />
-    <Compile Include="Physics\BoundingVolumes\BoundingBox.cs" />
-    <Compile Include="Physics\BoundingVolumes\BoundingOrientatedBox.cs" />
-    <Compile Include="Physics\BoundingVolumes\BoundingSphere.cs" />
-    <Compile Include="Physics\BoundingVolumes\BoundingVolume.cs" />
-    <Compile Include="Physics\Polyhedron\Math.cs" />
-    <Compile Include="Physics\Polyhedron\Polyhedron.cs" />
-    <Compile Include="Physics\Ray.cs" />
-    <Compile Include="Physics\RigidBody\RigidBody.cs" />
-    <Compile Include="Physics\Triangle.cs" />
-    <Compile Include="Sound\Sound.cs" />
-    <Compile Include="Terrain\Grass.cs" />
-    <Compile Include="Terrain\Terrain.cs" />
-    <Compile Include="Functions.cs" />
-    <Compile Include="Input.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
     <None Include="Resources\InstancingAlpha.fx" />
     <None Include="Resources\Instancing.fx" />
     <None Include="Resources\shader.fx" />
     <None Include="Resources\SimpleAnimation.fx" />
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <Compile Include="Structures.cs" />
-    <Compile Include="Terrain\TerrainLOD.cs" />
-    <Compile Include="Timers.cs" />
   </ItemGroup>
+
   <ItemGroup>
     <Content Include="Notes\Iterate.txt" />
     <Content Include="Notes\SpaceCamera.txt" />
     <Content Include="Notes\TextFile1.txt" />
   </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
+
 </Project>

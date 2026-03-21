@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Physics.BoundingVolumes
 {
@@ -76,8 +75,9 @@ namespace EngineX.Physics.BoundingVolumes
             // Compute bounding box min and max
             using (VertexBuffer buffer = objMesh.VertexBuffer)
             {
-                GraphicsStream GStream = buffer.Lock(0, 0, LockFlags.None);
-                Geometry.ComputeBoundingBox(GStream, objMesh.NumberVertices, objMesh.VertexFormat, out min, out max);
+                DataStream GStream = buffer.Lock(0, 0, LockFlags.None);
+                int stride = BoundingBox.GetFVFStride(objMesh.VertexFormat);
+                BoundingBox.ComputeBoundingBox(GStream, objMesh.NumberVertices, stride, out min, out max);
                 buffer.Unlock();
             }
 

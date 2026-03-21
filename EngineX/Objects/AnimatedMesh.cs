@@ -4,10 +4,8 @@ using System.Text;
 using System.Drawing;
 
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
-using DX = Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Objects
 {
@@ -39,10 +37,10 @@ namespace EngineX.Objects
             if (m_SkinningMethod == SkinningMethod.HLSL)
             {
                 // Load effect
-                m_SkinningEffect = Effect.FromFile(device, @"..\..\Resources\SimpleAnimation.fx", null, null, ShaderFlags.None, null);
+                m_SkinningEffect = Effect.FromFile(device, @"..\..\Resources\SimpleAnimation.fx", null, ShaderFlags.None, null);
 
                 m_SkinningEffect.OnResetDevice();
-                m_SkinningEffect.Technique = "t0";
+                m_SkinningEffect.Technique = new EffectHandle("t0");
             }
 
             AnimationAllocation alloc = new AnimationAllocation(this, meshFilePath);
@@ -159,11 +157,11 @@ namespace EngineX.Objects
 
 
                 // FVF has to match our declarator. Vertex shaders are not as forgiving as FF pipeline
-                VertexFormats NewFVF = (mesh.MeshData.Mesh.VertexFormat & VertexFormats.PositionMask) | VertexFormats.Normal | VertexFormats.Texture1 | VertexFormats.LastBetaUByte4;
+                VertexFormat NewFVF = (mesh.MeshData.Mesh.VertexFormat & VertexFormat.PositionMask) | VertexFormat.Normal | VertexFormat.Texture1 | VertexFormat.LastBetaUByte4;
                 if (NewFVF != mesh.MeshData.Mesh.VertexFormat)
                 {
 
-                    Mesh pMesh = mesh.MeshData.Mesh.Clone(mesh.MeshData.Mesh.Options.Value, NewFVF, device);
+                    Mesh pMesh = mesh.MeshData.Mesh.Clone(MeshFlags.Managed, NewFVF, device);
                     MeshData pData = mesh.MeshData;
                     pData.Mesh = pMesh;
 
@@ -247,14 +245,14 @@ namespace EngineX.Objects
                 
                 // Set Light for vertex shader
                 Vector4 vLightDir = new Vector4(0.0f, 1.0f, -1.0f, 0.0f);
-                vLightDir.Normalize();
+                vLightDir = Vector4.Normalize(vLightDir);
 
                 m_SkinningEffect.SetValue("lhtDir", vLightDir);
             }
 
             // Render the animation
             DrawFrame(rootFrame.FrameHierarchy as AnimationFrame);
-            device.RenderState.IndexedVertexBlendEnable = false;
+            device.SetRenderState(RenderState.IndexedVertexBlendEnable, false);
 
         }
 
@@ -322,12 +320,12 @@ namespace EngineX.Objects
                     }
 
                     if (mesh.NumInfluences == 1)
-                        device.RenderState.VertexBlend = VertexBlend.ZeroWeights;
+                        device.SetRenderState(RenderState.VertexBlend, VertexBlend.ZeroWeights);
                     else
-                        device.RenderState.VertexBlend = (VertexBlend)(mesh.NumInfluences - 1);
+                        device.SetRenderState(RenderState.VertexBlend, (VertexBlend)(mesh.NumInfluences - 1));
 
                     if (mesh.NumInfluences > 0)
-                        device.RenderState.IndexedVertexBlendEnable = true;
+                        device.SetRenderState(RenderState.IndexedVertexBlendEnable, true);
 
                     BoneCombination[] bones = mesh.Bones;
 
@@ -340,7 +338,7 @@ namespace EngineX.Objects
                             int iMatrixIndex = bones[iAttrib].BoneId[iPaletteEntry];
                             if (iMatrixIndex != -1)
                             {
-                                device.Transform.SetWorldMatrixByIndex(iPaletteEntry,
+                                device.SetTransform(TransformState.World + iPaletteEntry,
                                     mesh.OffsetMatrices[iMatrixIndex] *
                                     mesh.FrameMatrices[iMatrixIndex].
                                     CombinedTransformationMatrix);
@@ -349,7 +347,7 @@ namespace EngineX.Objects
                         }
 
                         // Setup the material
-                        device.Material = mesh.GetMaterials()[bones[iAttrib].AttributeId].Material3D;
+                        device.Material = mesh.GetMaterials()[bones[iAttrib].AttributeId].MaterialD3D;
 
                         Texture tex = mesh.MeshTextures[bones[iAttrib].AttributeId];
 
@@ -363,15 +361,15 @@ namespace EngineX.Objects
                 else
                 {
                     // Standard mesh, just draw it using FF
-                    device.RenderState.VertexBlend = VertexBlend.Disable;
+                    device.SetRenderState(RenderState.VertexBlend, VertexBlend.Disable);
 
                     // Set up transforms
-                    device.Transform.World = parent.CombinedTransformationMatrix;
+                    device.SetTransform(TransformState.World, parent.CombinedTransformationMatrix);
 
                     ExtendedMaterial[] materials = mesh.GetMaterials();
                     for (int i = 0; i < materials.Length; ++i)
                     {
-                        device.Material = materials[i].Material3D;
+                        device.Material = materials[i].MaterialD3D;
                         device.SetTexture(0, mesh.MeshTextures[i]);
                         mesh.MeshData.Mesh.DrawSubset(i);
                     }
@@ -393,12 +391,12 @@ namespace EngineX.Objects
 
 
                 if (mesh.NumInfluences == 1)
-                    device.RenderState.VertexBlend = VertexBlend.ZeroWeights;
+                    device.SetRenderState(RenderState.VertexBlend, VertexBlend.ZeroWeights);
                 else
-                    device.RenderState.VertexBlend = (VertexBlend)(mesh.NumInfluences - 1);
+                    device.SetRenderState(RenderState.VertexBlend, (VertexBlend)(mesh.NumInfluences - 1));
 
                 if (mesh.NumInfluences > 0)
-                    device.RenderState.IndexedVertexBlendEnable = true;
+                    device.SetRenderState(RenderState.IndexedVertexBlendEnable, true);
 
                 BoneCombination[] bones = mesh.Bones;
 
@@ -422,18 +420,18 @@ namespace EngineX.Objects
 
                     // Sum of all ambient and emissive contribution
                     ExtendedMaterial[] materials = mesh.GetMaterials();
-                    Color color1 = materials[bones[iAttrib].AttributeId].Material3D.Ambient;
-                    Color color2 = Color.FromArgb(255, 64, 64, 64);
-                    Color color3 = materials[bones[iAttrib].AttributeId].Material3D.Emissive;
-                    Color ambEmm;
-                    ambEmm = Microsoft.DirectX.Direct3D.ColorOperator.Modulate(color1, color2);
-                    ambEmm = Microsoft.DirectX.Direct3D.ColorOperator.Add(ambEmm, color3);
+                    Color4 color1 = materials[bones[iAttrib].AttributeId].MaterialD3D.Ambient;
+                    Color4 color2 = new Color4(1.0f, 64f/255f, 64f/255f, 64f/255f);
+                    Color4 color3 = materials[bones[iAttrib].AttributeId].MaterialD3D.Emissive;
+                    Color4 ambEmm;
+                    ambEmm = new Color4(color1.Alpha * color2.Alpha, color1.Red * color2.Red, color1.Green * color2.Green, color1.Blue * color2.Blue);
+                    ambEmm = new Color4(ambEmm.Alpha + color3.Alpha, ambEmm.Red + color3.Red, ambEmm.Green + color3.Green, ambEmm.Blue + color3.Blue);
 
-                    ColorValue color4 = ColorValue.FromColor(materials[bones[iAttrib].AttributeId].Material3D.Diffuse);
+                    Color4 color4 = materials[bones[iAttrib].AttributeId].MaterialD3D.Diffuse;
 
-                    // set material color properties 
+                    // set material color properties
                     m_SkinningEffect.SetValue("MaterialDiffuse", color4);
-                    m_SkinningEffect.SetValue("MaterialAmbient", ColorValue.FromColor(ambEmm));
+                    m_SkinningEffect.SetValue("MaterialAmbient", ambEmm);
 
                     // setup the material of the mesh subset - REMEMBER to use the original pre-skinning attribute id to get the correct material id
                     device.SetTexture(0, mesh.MeshTextures[bones[iAttrib].AttributeId]);
@@ -445,7 +443,7 @@ namespace EngineX.Objects
 
                     // Start the effect now all parameters have been updated
                     int numPasses;
-                    numPasses = m_SkinningEffect.Begin(FX.DoNotSaveState);
+                    numPasses = m_SkinningEffect.Begin(FX.DoNotSaveShaderState);
                     for (int iPass = 0; iPass < numPasses; iPass++)
                     {
                         m_SkinningEffect.BeginPass(iPass);
@@ -630,7 +628,7 @@ namespace EngineX.Objects
         /// </summary>
         public override MeshContainer CreateMeshContainer(
             string name, MeshData meshData, ExtendedMaterial[] materials,
-            EffectInstance[] effectInstances, GraphicsStream adjacency,
+            EffectInstance[] effectInstances, int[] adjacency,
             SkinInformation skinInfo)
         {
             // We only handle meshes here
@@ -638,7 +636,7 @@ namespace EngineX.Objects
                 throw new ArgumentException();
 
             // We must have a vertex format mesh
-            if (meshData.Mesh.VertexFormat == VertexFormats.None)
+            if (meshData.Mesh.VertexFormat == VertexFormat.None)
                 throw new ArgumentException();
 
             AnimationMeshContainer mesh = new AnimationMeshContainer();
@@ -650,11 +648,11 @@ namespace EngineX.Objects
 
 
             // Make sure there are normals
-            if ((meshData.Mesh.VertexFormat & VertexFormats.Normal) == 0)
+            if ((meshData.Mesh.VertexFormat & VertexFormat.Normal) == 0)
             {
                 // Clone the mesh
-                Mesh tempMesh = meshData.Mesh.Clone(meshData.Mesh.Options.Value,
-                    meshData.Mesh.VertexFormat | VertexFormats.Normal, dev);
+                Mesh tempMesh = meshData.Mesh.Clone(MeshFlags.Managed,
+                    meshData.Mesh.VertexFormat | VertexFormat.Normal, dev);
 
                 // Destroy current mesh, use the new one
                 meshData.Mesh.Dispose();
@@ -692,9 +690,9 @@ namespace EngineX.Objects
             // Create any textures
             for (int i = 0; i < materials.Length; i++)
             {
-                if (materials[i].TextureFilename != null)
+                if (materials[i].TextureFileName != null)
                 {
-                    meshTextures[i] = TextureLoader.FromFile(dev, filePath + materials[i].TextureFilename);
+                    meshTextures[i] = Texture.FromFile(dev, filePath + materials[i].TextureFileName);
                 }
             }
 

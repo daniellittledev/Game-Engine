@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
-using DX = Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX
 {
@@ -337,18 +335,17 @@ namespace EngineX
             public MeshInformation(Device device, string location, string file)
             {
   
-                GraphicsStream outputAdjacency;
                 ExtendedMaterial[] materials;
                 EffectInstance[] effects;
-                ObjMesh = DX.Mesh.FromFile(location + file, MeshFlags.Managed, device, out outputAdjacency, out materials, out effects);
+                ObjMesh = Mesh.FromFile(device, location + file, MeshFlags.Managed, out materials, out effects);
 
                 // Not using effects
                 effects = null;
 
                 // Add normals if it doesn't have any
-                if ((ObjMesh.VertexFormat & VertexFormats.PositionNormal) != VertexFormats.PositionNormal)
+                if ((ObjMesh.VertexFormat & VertexFormat.Normal) != VertexFormat.Normal)
                 {
-                    Mesh tempMesh = ObjMesh.Clone(ObjMesh.Options.Value, ObjMesh.VertexFormat | VertexFormats.PositionNormal | VertexFormats.Texture1, device);
+                    Mesh tempMesh = ObjMesh.Clone(MeshFlags.Managed, ObjMesh.VertexFormat | VertexFormat.Normal | VertexFormat.Texture1, device);
                     tempMesh.ComputeNormals();
                     ObjMesh.Dispose();
                     ObjMesh = tempMesh;
@@ -358,25 +355,24 @@ namespace EngineX
 
                 //Mesh1.GenerateAdjacency(0.1f, Mesh1.ConvertAdjacencyToPointReps(outputAdjacency));
 
-                ObjMesh.OptimizeInPlace(Microsoft.DirectX.Direct3D.MeshFlags.OptimizeAttributeSort, outputAdjacency);
-
-                outputAdjacency.Dispose();
-                outputAdjacency = null;
+                int[] adjacency = new int[ObjMesh.FaceCount * 3];
+                ObjMesh.GenerateAdjacency(0.001f, adjacency);
+                ObjMesh.OptimizeInPlace(MeshOptimizeFlags.AttributeSort, adjacency);
 
                 // Extract the material properties and texture names.
                 Textures = new Texture[materials.Length];
                 Materials = new Material[materials.Length];
                 for (int i = 0; i < materials.Length; i++)
                 {
-                    Materials[i] = materials[i].Material3D;
+                    Materials[i] = materials[i].MaterialD3D;
 
                     //Console.WriteLine(materials[0].TextureFilename);
 
                     // Create the texture.
-                    if (materials[i].TextureFilename != null && materials[i].TextureFilename.Length > 0)
+                    if (materials[i].TextureFileName != null && materials[i].TextureFileName.Length > 0)
                     {
-                        string temp = materials[i].TextureFilename;
-                        Textures[i] = TextureLoader.FromFile(device, location + temp);
+                        string temp = materials[i].TextureFileName;
+                        Textures[i] = Texture.FromFile(device, location + temp);
                     }
                     else
                     {
@@ -470,7 +466,7 @@ namespace EngineX
                 {
                     return;
                 }
-                Device1.Transform.World = Transform;
+                Device1.SetTransform(TransformState.World, Transform);
                 Device1.VertexFormat = SourceMesh.VertexFormat;
                 
                 for (int i = 0; i < Mesh1.SubsetCount ; i++)

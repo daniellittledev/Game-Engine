@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 using System.Windows.Forms;
 using System.Drawing;
@@ -106,15 +105,15 @@ namespace EngineX.Effects
                 set { verlocityRandomess = value; }
             }
 
-            protected ColorValue beginColour;
-            public ColorValue BeginColour
+            protected Color4 beginColour;
+            public Color4 BeginColour
             {
                 get { return beginColour; }
                 set { beginColour = value; }
             }
 
-            protected ColorValue endColour;
-            public ColorValue EndColour
+            protected Color4 endColour;
+            public Color4 EndColour
             {
                 get { return endColour; }
                 set { endColour = value; }
@@ -217,7 +216,7 @@ namespace EngineX.Effects
             }
 
             private Vector3 Add(Vector3 vector, float value)
-            { 
+            {
                 vector.X += value;
                 vector.Y += value;
                 vector.Z += value;
@@ -307,7 +306,7 @@ namespace EngineX.Effects
                     endColour.Green + factor,
                     endColour.Blue + factor);
 
-               particle.Position = GetParticlePosition();
+                particle.Position = GetParticlePosition();
 
             }
 
@@ -397,7 +396,6 @@ namespace EngineX.Effects
                     endColour.Red + factor,
                     endColour.Green + factor,
                     endColour.Blue + factor);
-
 
                 if (baseEmitter != null)
                 {
@@ -500,9 +498,9 @@ namespace EngineX.Effects
                 // Create Vertex
                 return new CustomVertex.PositionColored(
                     // Position
-                    position, 
-                    // Colour
-                    new ColorValue(
+                    position,
+                    // Colour (Color4 constructor: red, green, blue, alpha)
+                    new Color4(
                     lerp(beginColour.X, endColour.X, factor),
                     lerp(beginColour.Y, endColour.Y, factor),
                     lerp(beginColour.Z, endColour.Z, factor),
@@ -538,7 +536,7 @@ namespace EngineX.Effects
 
             device = direct3dDeivce;
 
-            texture = TextureLoader.FromFile(device, Texture);
+            texture = SharpDX.Direct3D9.Texture.FromFile(device, Texture);
 
             MaxCount = maxParticles;
 
@@ -588,13 +586,13 @@ namespace EngineX.Effects
         public void SetEffect()
         {
 
-            device.RenderState.PointScaleA = 0.5f;
-            device.RenderState.PointScaleB = 0.5f;
-            device.RenderState.PointScaleC = 0.5f;
+            device.SetRenderState(RenderState.PointScaleA, size * 0.5f);
+            device.SetRenderState(RenderState.PointScaleB, size * 0.5f);
+            device.SetRenderState(RenderState.PointScaleC, size * 0.5f);
 
-            device.RenderState.PointSize = size;
+            device.SetRenderState(RenderState.PointSize, size);
 
-            device.RenderState.PointScaleEnable = true;
+            device.SetRenderState(RenderState.PointScaleEnable, true);
 
             //device.RenderState.AlphaBlendOperation = BlendOperation.Add;
 
@@ -621,32 +619,32 @@ namespace EngineX.Effects
 
         public void Render()
         {
-            device.TextureState[0].AlphaOperation = TextureOperation.SelectArg1;
-            device.TextureState[0].AlphaArgument1 = TextureArgument.Diffuse;
+            device.SetTextureStageState(0, TextureStage.AlphaOperation, TextureOperation.SelectArg1);
+            device.SetTextureStageState(0, TextureStage.AlphaArg1, TextureArgument.Diffuse);
 
             device.VertexFormat = CustomVertex.PositionColored.Format;
             device.SetTexture(0, texture);
 
-            device.RenderState.Lighting = false;
-            device.RenderState.ZBufferWriteEnable = false;
+            device.SetRenderState(RenderState.Lighting, false);
+            device.SetRenderState(RenderState.ZWriteEnable, false);
 
-            device.RenderState.PointSpriteEnable = true;
+            device.SetRenderState(RenderState.PointSpriteEnable, true);
 
-            device.RenderState.AlphaBlendEnable = true;
-            device.RenderState.AlphaTestEnable = true;
+            device.SetRenderState(RenderState.AlphaBlendEnable, true);
+            device.SetRenderState(RenderState.AlphaTestEnable, true);
 
-            device.RenderState.DestinationBlend = Blend.One;
-            device.RenderState.SourceBlend = Blend.SourceAlpha;
+            device.SetRenderState(RenderState.DestinationBlend, Blend.One);
+            device.SetRenderState(RenderState.SourceBlend, Blend.SourceAlpha);
 
             //device.RenderState.AlphaDestinationBlend = Blend.One;
             //device.RenderState.AlphaSourceBlend = Blend.SourceColor;
 
             device.DrawUserPrimitives(PrimitiveType.PointList, RenderCount, vertices);
 
-            device.RenderState.AlphaBlendEnable = false;
-            device.RenderState.AlphaTestEnable = false;
+            device.SetRenderState(RenderState.AlphaBlendEnable, false);
+            device.SetRenderState(RenderState.AlphaTestEnable, false);
 
-            device.RenderState.ZBufferWriteEnable = true;
+            device.SetRenderState(RenderState.ZWriteEnable, true);
 
         }
 

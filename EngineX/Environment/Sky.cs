@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Runtime.InteropServices;
 
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Environment
 {
@@ -12,36 +13,33 @@ namespace EngineX.Environment
 
         private Device device;
         private VertexBuffer vertexBuffer;
+        private int vertexCount;
 
         public Sky(Device device)
         {
             this.device = device;
 
-            // Create the VB
-            vertexBuffer = new VertexBuffer(typeof(CustomVertex.PositionColored), 3 * 4 * 8 * 8 + 4 * 3, device, Usage.WriteOnly, CustomVertex.PositionColored.Format, Pool.SystemMemory);
-            // Create a vertex buffer (100 customervertex)
-            CustomVertex.PositionColored[] verts = (CustomVertex.PositionColored[])vertexBuffer.Lock(0, 0); // Lock the buffer (which will return our structs)
+            vertexCount = 3 * 4 * 8 * 8 + 4 * 3;
+            int stride = Marshal.SizeOf(typeof(CustomVertex.PositionColored));
+
+            vertexBuffer = new VertexBuffer(device, vertexCount * stride, Usage.WriteOnly, CustomVertex.PositionColored.Format, Pool.SystemMemory);
+
+            var verts = new CustomVertex.PositionColored[vertexCount];
 
             System.Drawing.Color topColor = System.Drawing.Color.LightBlue;
             System.Drawing.Color bottomColor = System.Drawing.Color.Blue;
 
             int count = 0;
 
-            Vector3 Top = new Vector3(0, 2, 0);
-            Vector3 Base = new Vector3(0, -2, 0);
-
-            //Dome
             CreateLayers(verts, 1, topColor, 2, bottomColor, ref count);
 
-            // Unlock (and copy) the data
+            var ds = vertexBuffer.Lock(0, 0, LockFlags.None);
+            ds.WriteRange(verts);
             vertexBuffer.Unlock();
-
-
         }
 
         private void CreateLayers(CustomVertex.PositionColored[] verts, float topRadius, System.Drawing.Color topColor, float bottomRadius, System.Drawing.Color bottomColor, ref int offset)
         {
-
             float topHeight = 1;
             float bottomHeight = -1;
 
@@ -51,18 +49,13 @@ namespace EngineX.Environment
             float parts = 8;
             float gap = (float)(Math.PI * 2) / parts;
 
-            Vector3 top = new Vector3(0, topHeight, 0);
-            Vector3 bottom = new Vector3(0, bottomHeight, 0);
-
             float bodyBegin = 1;
             float bodyEnd = -1;
 
             for (int i = 0; i < parts; i++)
             {
-
                 for (int j = 0; j < parts; j++)
                 {
-
                     System.Drawing.Color C1 = Lerp(bottomColor, topColor, (parts - j) / parts);
                     System.Drawing.Color C2 = Lerp(bottomColor, topColor, (parts - (j + 1)) / parts);
 
@@ -84,7 +77,6 @@ namespace EngineX.Environment
                     }
                     else
                     {
-
                         //Face
                         verts[offset].Color = C1.ToArgb();
                         verts[offset++].Position = rightTop + new Vector3(0, Lerp(bodyEnd, bodyBegin, (1 - j / (parts + 1))), 0);
@@ -110,11 +102,8 @@ namespace EngineX.Environment
                             verts[offset].Color = C2.ToArgb();
                             verts[offset++].Position = leftBottom + new Vector3(0, Lerp(bodyEnd, bodyBegin, (1 - (j + 1) / (parts + 1))), 0);
                         }
-
                     }
-
                 }
-
             }
         }
 
@@ -134,21 +123,17 @@ namespace EngineX.Environment
 
         public void Render(Vector3 CameraPosition)
         {
-
-            device.RenderState.ZBufferEnable = false;
-            device.RenderState.Lighting = false;
-            //device.RenderState.FillMode = FillMode.WireFrame;
+            device.SetRenderState(RenderState.ZEnable, false);
+            device.SetRenderState(RenderState.Lighting, false);
 
             device.SetTexture(0, null);
             device.VertexFormat = CustomVertex.PositionColored.Format;
-            device.SetStreamSource(0, vertexBuffer, 0);
-            device.Transform.World = Matrix.Translation(CameraPosition);
+            device.SetStreamSource(0, vertexBuffer, 0, Marshal.SizeOf(typeof(CustomVertex.PositionColored)));
+            device.SetTransform(TransformState.World, Matrix.Translation(CameraPosition));
             device.DrawPrimitives(PrimitiveType.TriangleList, 0, 5 * 8 * 8);
 
-            //device.RenderState.FillMode = FillMode.Solid;
-            device.RenderState.Lighting = true;
-            device.RenderState.ZBufferEnable = true;
-
+            device.SetRenderState(RenderState.Lighting, true);
+            device.SetRenderState(RenderState.ZEnable, true);
         }
 
     }

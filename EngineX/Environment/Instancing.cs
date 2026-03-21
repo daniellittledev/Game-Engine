@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 using System.Windows.Forms;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace EngineX.Environment
 {
@@ -59,15 +59,18 @@ namespace EngineX.Environment
             texture = meshInfo.Textures[0];
 
             // Create Vertices /////////////////
-            // Mesh will typically use this PositionNormalTextured format
-            CustomVertex.PositionNormalTextured[] meshVertices = (CustomVertex.PositionNormalTextured[])meshInfo.ObjMesh.VertexBuffer.Lock
-                (0, typeof(CustomVertex.PositionNormalTextured), LockFlags.ReadOnly, meshInfo.ObjMesh.NumberVertices);
+            // Lock the mesh vertex buffer and read PositionNormalTextured data
+            int meshVertexCount = meshInfo.ObjMesh.NumberVertices;
+            int meshStride = Marshal.SizeOf(typeof(CustomVertex.PositionNormalTextured));
+            var meshVBData = meshInfo.ObjMesh.VertexBuffer.Lock(0, meshVertexCount * meshStride, LockFlags.ReadOnly);
+            CustomVertex.PositionNormalTextured[] meshVertices = meshVBData.ReadRange<CustomVertex.PositionNormalTextured>(meshVertexCount);
+            meshInfo.ObjMesh.VertexBuffer.Unlock();
 
             vertexCount = meshVertices.Length * itemCount;
 
-            instanceVertexBuffer = new VertexBuffer(typeof(ShaderInstancingVertex),
-                vertexCount, device, Usage.WriteOnly,
-                ShaderInstancingVertex.Format, Pool.Default); // items * verts
+            int instanceStride = ShaderInstancingVertex.StrideSize;
+            instanceVertexBuffer = new VertexBuffer(device, vertexCount * instanceStride,
+                Usage.WriteOnly, ShaderInstancingVertex.Format, Pool.Default);
 
             ShaderInstancingVertex[] instanceVertices = new ShaderInstancingVertex[vertexCount];
 
@@ -81,23 +84,23 @@ namespace EngineX.Environment
                 }
             }
 
-
-            instanceVertexBuffer.SetData(instanceVertices, 0, LockFlags.None);
-            //instanceVertexBuffer.Unlock();
-
-            meshInfo.ObjMesh.VertexBuffer.Unlock();
+            var dsVB = instanceVertexBuffer.Lock(0, 0, LockFlags.None);
+            dsVB.WriteRange(instanceVertices);
+            instanceVertexBuffer.Unlock();
 
 
             // Create Indices //////////////////
-            instanceIndexBuffer = new IndexBuffer(typeof(short), itemCount * meshInfo.ObjMesh.NumberFaces * 3,
-                device, Usage.WriteOnly, Pool.Default);
+            int meshFaceCount = meshInfo.ObjMesh.NumberFaces;
+            int meshIndexCount = meshFaceCount * 3;
+            var meshIBData = meshInfo.ObjMesh.IndexBuffer.Lock(0, meshIndexCount * sizeof(short), LockFlags.ReadOnly);
+            short[] meshIndices = meshIBData.ReadRange<short>(meshIndexCount);
+            meshInfo.ObjMesh.IndexBuffer.Unlock();
 
-            // Create the index buffer
-            short[] meshIndices = (short[])meshInfo.ObjMesh.IndexBuffer.Lock(0, typeof(short),
-                LockFlags.ReadOnly, meshInfo.ObjMesh.NumberFaces * 3);
             short[] instanceIndices = new short[itemCount * meshIndices.Length];
+            primCount = itemCount * meshFaceCount;
 
-            primCount = itemCount * meshInfo.ObjMesh.NumberFaces;
+            instanceIndexBuffer = new IndexBuffer(device, instanceIndices.Length * sizeof(short),
+                Usage.WriteOnly, Pool.Default, true);
 
             // copy indices from original buffer
             for (int instance = 0; instance < itemCount; instance++)
@@ -109,10 +112,9 @@ namespace EngineX.Environment
                 }
             }
 
-            instanceIndexBuffer.SetData(instanceIndices, 0, LockFlags.None);
-            //instanceIndexBuffer.Unlock();
-            meshInfo.ObjMesh.IndexBuffer.Unlock();
-
+            var dsIB = instanceIndexBuffer.Lock(0, 0, LockFlags.None);
+            dsIB.WriteRange(instanceIndices);
+            instanceIndexBuffer.Unlock();
         }
 
         private void SetUpEffect(Device device, TransformsManager transfrom, int itemCount)
@@ -131,7 +133,7 @@ namespace EngineX.Environment
                 file = @"..\..\Resources\InstancingAlpha.fx";
             }
             else
-            { 
+            {
                 file = @"..\..\Resources\Instancing.fx";
             }
 
@@ -142,17 +144,8 @@ namespace EngineX.Environment
             }
 
             // Load Effect
-            string s;
-            instancingEffect = Effect.FromFile(device, file, null, "", ShaderFlags.None, null, out s);
-            if (s != "")
-            {
-                MessageBox.Show(s);
-                Application.Exit();
-                return;
-
-            }
-
-            instancingEffect.Technique = "ShaderInstancing";
+            instancingEffect = Effect.FromFile(device, file, null, ShaderFlags.None, null);
+            instancingEffect.Technique = new EffectHandle("ShaderInstancing");
 
             viewProjection = instancingEffect.GetParameter(null, "ViewProjection");
             instanceData = instancingEffect.GetParameter(null, "InstanceData");
@@ -166,7 +159,6 @@ namespace EngineX.Environment
 
         public void SetMatrixArray()
         {
-            //instanceData
             instancingEffect.SetValue(instanceData, instanceMatrixData);
         }
 
@@ -183,7 +175,7 @@ namespace EngineX.Environment
             device.SetStreamSource(0, instanceVertexBuffer, 0, ShaderInstancingVertex.StrideSize);
             device.Indices = instanceIndexBuffer;
             device.VertexFormat = ShaderInstancingVertex.Format;
-            device.VertexDeclaration = Vertex;	
+            device.VertexDeclaration = Vertex;
 
             // Update the effect
             instancingEffect.SetValue(viewProjection, transfrom.View * transfrom.Projection);
@@ -203,6 +195,7 @@ namespace EngineX.Environment
 
         }
 
+        [StructLayout(LayoutKind.Sequential)]
         public struct ShaderInstancingVertex
         {
             public Vector3 Position;
@@ -220,17 +213,17 @@ namespace EngineX.Environment
                 this.Instance = inst;
             }
 
-            public static readonly VertexFormats Format = VertexFormats.Position | VertexFormats.Normal | VertexFormats.Texture0 | VertexFormats.Texture1;
+            public static readonly VertexFormat Format = VertexFormat.Position | VertexFormat.Normal | VertexFormat.Texture1 | VertexFormat.Texture2;
             public static readonly VertexElement[] Declaration = new VertexElement[]
-		{
-			new VertexElement(0, 0, DeclarationType.Float3, DeclarationMethod.Default, DeclarationUsage.Position, 0),
-			new VertexElement(0, 12, DeclarationType.Float3, DeclarationMethod.Default, DeclarationUsage.Normal, 0),
-			new VertexElement(0, 24, DeclarationType.Float2, DeclarationMethod.Default, DeclarationUsage.TextureCoordinate, 0),
-			new VertexElement(0, 32, DeclarationType.Float1, DeclarationMethod.Default, DeclarationUsage.TextureCoordinate, 1),
-			VertexElement.VertexDeclarationEnd
-		};
+	        {
+		        new VertexElement(0, 0, DeclarationType.Float3, DeclarationMethod.Default, DeclarationUsage.Position, 0),
+		        new VertexElement(0, 12, DeclarationType.Float3, DeclarationMethod.Default, DeclarationUsage.Normal, 0),
+		        new VertexElement(0, 24, DeclarationType.Float2, DeclarationMethod.Default, DeclarationUsage.TextureCoordinate, 0),
+		        new VertexElement(0, 32, DeclarationType.Float1, DeclarationMethod.Default, DeclarationUsage.TextureCoordinate, 1),
+		        VertexElement.VertexDeclarationEnd
+	        };
 
-            public static int StrideSize = VertexInformation.GetDeclarationVertexSize(Declaration, 0);
+            public static int StrideSize = Marshal.SizeOf(typeof(ShaderInstancingVertex));
 
         }
     }

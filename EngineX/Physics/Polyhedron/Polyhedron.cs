@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Collections;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Physics
 {
@@ -38,13 +38,13 @@ namespace EngineX.Physics
                     }
                 }
 
-                normal.Normalize();
+                normal = Vector3.Normalize(normal);
             }
 
             public void Transform(Matrix matrix)
             {
-                position.TransformCoordinate(matrix);
-                normal.TransformNormal(matrix);
+                position = Vector3.TransformCoordinate(position, matrix);
+                normal = Vector3.TransformNormal(normal, matrix);
             }
         }
 
@@ -62,7 +62,7 @@ namespace EngineX.Physics
 
             public void Transform(Matrix matrix)
             {
-                normal.TransformNormal(matrix);
+                normal = Vector3.TransformNormal(normal, matrix);
             }
         }
 
@@ -102,9 +102,9 @@ namespace EngineX.Physics
 
             public void Transform(Matrix matrix)
             {
-                plane.Transform(matrix);
-                edge0.TransformNormal(matrix);
-                edge1.TransformNormal(matrix);
+                plane = Plane.Transform(plane, Matrix.Transpose(Matrix.Invert(matrix)));
+                edge0 = Vector3.TransformNormal(edge0, matrix);
+                edge1 = Vector3.TransformNormal(edge1, matrix);
             }
 
             // this code was adapted from Magic Software's point-triangle distance
@@ -538,10 +538,15 @@ namespace EngineX.Physics
         public Polyhedron(Mesh mesh)
         {
             /* clone the mesh so as to get at it's faces and vertices */
-            using (Mesh tempMesh = mesh.Clone(MeshFlags.Managed, VertexFormats.Position, mesh.Device))
+            using (Mesh tempMesh = mesh.Clone(MeshFlags.Managed, VertexFormat.Position, mesh.Device))
             {
-                CustomVertex.PositionOnly[] vertList = (CustomVertex.PositionOnly[])tempMesh.LockVertexBuffer(typeof(CustomVertex.PositionOnly), LockFlags.ReadOnly, tempMesh.NumberVertices);
-                short[] faceList = (short[])tempMesh.LockIndexBuffer(typeof(short), LockFlags.ReadOnly, tempMesh.NumberFaces * 3);
+                DataStream vertStream = tempMesh.LockVertexBuffer(LockFlags.ReadOnly);
+                CustomVertex.PositionOnly[] vertList = vertStream.ReadRange<CustomVertex.PositionOnly>(tempMesh.NumberVertices);
+                tempMesh.UnlockVertexBuffer();
+
+                DataStream faceStream = tempMesh.LockIndexBuffer(LockFlags.ReadOnly);
+                short[] faceList = faceStream.ReadRange<short>(tempMesh.NumberFaces * 3);
+                tempMesh.UnlockIndexBuffer();
 
                 System.Diagnostics.Debug.Assert(vertList.Length == tempMesh.NumberVertices);
                 System.Diagnostics.Debug.Assert(faceList.Length == tempMesh.NumberFaces * 3);
@@ -562,9 +567,6 @@ namespace EngineX.Physics
                         f.vertex[j] = (Vertex)verts[faceList[i * 3 + j]];
                     faces.Add(f);
                 }
-
-                tempMesh.UnlockVertexBuffer();
-                tempMesh.UnlockIndexBuffer();
             }
 
             Initialize();

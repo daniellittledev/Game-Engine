@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 using System.Drawing;
 
 namespace EngineX.GUI.VectorGraphics
@@ -133,6 +133,15 @@ namespace EngineX.GUI.VectorGraphics
         static float darkShadeFactor = 0.5f;
         //static float lightShadeFactor = 1.15f;
 
+        private static Color ScaleColor(Color color, float factor)
+        {
+            return Color.FromArgb(
+                color.A,
+                (int)Math.Min(255, color.R * factor),
+                (int)Math.Min(255, color.G * factor),
+                (int)Math.Min(255, color.B * factor));
+        }
+
         #region ShadingMode methods
 
         /// <summary>
@@ -144,7 +153,7 @@ namespace EngineX.GUI.VectorGraphics
         {
             int colorTopLeft = color.ToArgb();
             int colorTopRight = colorTopLeft;
-            int colorBottomLeft = Color.FromArgb(color.A, ColorOperator.Scale(color, darkShadeFactor)).ToArgb();
+            int colorBottomLeft = Color.FromArgb(color.A, ScaleColor(color, darkShadeFactor)).ToArgb();
             int colorBottomRight = colorBottomLeft;
 
             return new int[] { colorTopLeft, colorTopRight, colorBottomLeft, colorBottomRight };
@@ -157,7 +166,7 @@ namespace EngineX.GUI.VectorGraphics
         /// <returns>An array of ints containing the color of each vertex (0: top left 1: top right 2: bottomLeft 3: bottom right</returns>
         public static int[] ShadeBottomToTop(Color color)
         {
-            int colorTopLeft = Color.FromArgb(color.A, ColorOperator.Scale(color, darkShadeFactor)).ToArgb();
+            int colorTopLeft = Color.FromArgb(color.A, ScaleColor(color, darkShadeFactor)).ToArgb();
             int colorTopRight = colorTopLeft;
             int colorBottomLeft = color.ToArgb();
             int colorBottomRight = colorBottomLeft;
@@ -173,7 +182,7 @@ namespace EngineX.GUI.VectorGraphics
         public static int[] ShadeLeftToRight(Color color)
         {
             int colorTopLeft = color.ToArgb();
-            int colorTopRight = Color.FromArgb(color.A, ColorOperator.Scale(color, darkShadeFactor)).ToArgb();
+            int colorTopRight = Color.FromArgb(color.A, ScaleColor(color, darkShadeFactor)).ToArgb();
             int colorBottomLeft = colorTopLeft;
             int colorBottomRight = colorTopRight;
 
@@ -187,7 +196,7 @@ namespace EngineX.GUI.VectorGraphics
         /// <returns>An array of ints containing the color of each vertex (0: top left 1: top right 2: bottomLeft 3: bottom right</returns>
         public static int[] ShadeRightToLeft(Color color)
         {
-            int colorTopLeft = Color.FromArgb(color.A, ColorOperator.Scale(color, darkShadeFactor)).ToArgb();
+            int colorTopLeft = Color.FromArgb(color.A, ScaleColor(color, darkShadeFactor)).ToArgb();
             int colorTopRight = color.ToArgb();
             int colorBottomLeft = colorTopLeft;
             int colorBottomRight = colorTopRight;
@@ -247,7 +256,7 @@ namespace EngineX.GUI.VectorGraphics
             y = center.Y;
             col1 = color.ToArgb();
 
-            float deltaRad = Geometry.DegreeToRadian(360) / slices;
+            float deltaRad = MathUtil.DegreesToRadians(360) / slices;
             float delta = 0;
 
             vertices[0] = new CustomVertex.TransformedColored(x, y, 0, 1, col1);
@@ -286,7 +295,7 @@ namespace EngineX.GUI.VectorGraphics
                                                           Color color)
         {
             Vector2[] points = new Vector2[slices];
-            float deltaRad = Geometry.DegreeToRadian(360) / slices;
+            float deltaRad = MathUtil.DegreesToRadians(360) / slices;
             float delta = 0;
 
             for (int i = 0; i < slices; i++)
@@ -309,7 +318,7 @@ namespace EngineX.GUI.VectorGraphics
             Vector2 center, int radius1, int radius2, int slices, Color color)
         {
             return
-                BuildEllipse(center, radius1, radius2, Geometry.DegreeToRadian(0), Geometry.DegreeToRadian(360), slices,
+                BuildEllipse(center, radius1, radius2, MathUtil.DegreesToRadians(0), MathUtil.DegreesToRadians(360), slices,
                             color);
         }
 
@@ -361,7 +370,7 @@ namespace EngineX.GUI.VectorGraphics
 
             Vector2 vDir = (v1 - v2);
             vDir = new Vector2(-vDir.Y, vDir.X);
-            vDir.Normalize();
+            vDir = Vector2.Normalize(vDir);
             width /= 2;
 
             Vector2 vTopLeft = v1 + (-width * vDir);
@@ -523,14 +532,14 @@ namespace EngineX.GUI.VectorGraphics
             {
                 case BorderStyle.Raised:
                     return BuildRectangularOutline(position, size,
-                                                  Color.FromArgb(255, ColorOperator.Scale(borderColor, 1f)),
-                                                  Color.FromArgb(255, ColorOperator.Scale(borderColor, 0.5f)),
+                                                  Color.FromArgb(255, ScaleColor(borderColor, 1f)),
+                                                  Color.FromArgb(255, ScaleColor(borderColor, 0.5f)),
                                                   borderSize, borders);
 
                 case BorderStyle.Sunken:
                     return BuildRectangularOutline(position, size,
-                                                  Color.FromArgb(255, ColorOperator.Scale(borderColor, 0.5f)),
-                                                  Color.FromArgb(255, ColorOperator.Scale(borderColor, 1f)),
+                                                  Color.FromArgb(255, ScaleColor(borderColor, 0.5f)),
+                                                  Color.FromArgb(255, ScaleColor(borderColor, 1f)),
                                                   borderSize, borders);
 
                 case BorderStyle.Flat:
@@ -593,7 +602,7 @@ namespace EngineX.GUI.VectorGraphics
 
             if (isShaded)
             {
-                shaded = Color.FromArgb(color.A, ColorOperator.Scale(color, 0.5f));
+                shaded = Color.FromArgb(color.A, ScaleColor(color, 0.5f));
                 col2 = shaded.ToArgb();
             }
             else

@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
-using Microsoft.DirectX.Security;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX
 {
@@ -241,7 +239,7 @@ namespace EngineX
 
                 foreach (Plane plane in FrustumPlanes)
                 {
-                    distance = plane.Dot(unitToCheck);
+                    distance = Plane.DotCoordinate(plane, unitToCheck);
 
                     if (distance <= (-Radius))
                         return false;
@@ -259,7 +257,7 @@ namespace EngineX
             public bool ViewTestBox(Vector3 Min, Vector3 Max, float Bias)
             {
                 Vector3 Center = Vector3.Add(Min, Max);
-                Center.Scale(1 / 2);
+                Center *= (1.0f / 2);
                 Vector3 HalfDiag = Vector3.Subtract(Max, Center);
 
                 float M = 0F;
@@ -293,7 +291,7 @@ namespace EngineX
 
                     for (J = 0; J < VCount; J++)
                     {
-                        if (plane.Dot(V[J]) > 0)
+                        if (Plane.DotCoordinate(plane, V[J]) > 0)
                         {
                             bIn = true;
                         }
@@ -314,7 +312,7 @@ namespace EngineX
             public void ComputeViewFrustum()
             {
                 Matrix matrix = ViewMatrix * ProjectionMatrix;
-                matrix.Invert();
+                matrix = Matrix.Invert(matrix);
 
                 FrustumCorners[0] = new Vector3(-1.0f, -1.0f, 0.0f); // xyz
                 FrustumCorners[1] = new Vector3(1.0f, -1.0f, 0.0f); // Xyz
@@ -578,10 +576,10 @@ namespace EngineX
                 Vector3 Forward = new Vector3();
                 Forward.X = (float)System.Math.Cos(Heading);
                 Forward.Z = (float)System.Math.Sin(Heading);
-                Look.Normalize();
+                Look = Vector3.Normalize(Look);
 
-                NewPos = Position + Vector3.Scale(Forward, ForwardFactor * (float)ElapsedTime);
-                NewPos += Vector3.Scale(new Vector3(Right.X, 0, Right.Z), StrafeFactor * (float)ElapsedTime);
+                NewPos = Position + Forward * (ForwardFactor * (float)ElapsedTime);
+                NewPos += new Vector3(Right.X, 0, Right.Z) * (StrafeFactor * (float)ElapsedTime);
                 
                 NewPos.Y = Position.Y;
 
@@ -610,11 +608,11 @@ namespace EngineX
                     Vector3 pos = NewPos;
                     pos.Y = groundHeight;
                     pos = pos - Position;
-                    pos.Normalize();
+                    pos = Vector3.Normalize(pos);
 
                     //Console.WriteLine(Diff.Length());
 
-                    pos.Multiply(Diff.Length());
+                    pos *= Diff.Length();
 
                     Position += pos;
 
@@ -712,7 +710,7 @@ namespace EngineX
                 Single temp = (float)Math.Cos(Pitch);
                 Look.X = (float)Math.Cos(Heading) * temp;
                 Look.Z = (float)Math.Sin(Heading) * temp;
-                Look.Normalize();
+                Look = Vector3.Normalize(Look);
 
                 //Roll
                 Up.X = (float)Math.Sin(Roll);
@@ -720,7 +718,7 @@ namespace EngineX
                 Up.Z = 0;
 
                 Right = Vector3.Cross(Look, Up);
-                Right.Normalize();
+                Right = Vector3.Normalize(Right);
 
                 CamPos = Position;
                 CamPos.Y += StandHeight;
@@ -836,7 +834,7 @@ namespace EngineX
             /// <param name="Factor"></param>
             /// <param name="ElapsedTime"></param>
             public void UpdateDistMain(Single Factor, double ElapsedTime)
-            {Position += Vector3.Scale(Look, Factor * (float)ElapsedTime);}
+            {Position += Look * (Factor * (float)ElapsedTime);}
 
             /// <summary>
             /// Move the camera relativly left or right.
@@ -844,28 +842,28 @@ namespace EngineX
             /// <param name="Factor"></param>
             /// <param name="ElapsedTime"></param>
             public void UpdateDistStrafe(Single Factor, double ElapsedTime)
-            {Position += Vector3.Scale(Right, Factor * (float)ElapsedTime);}
+            {Position += Right * (Factor * (float)ElapsedTime);}
 
             /// <summary>
             /// Move the camera relativly up or down.
             /// </summary>
             /// <param name="Factor"></param>
             /// <param name="ElapsedTime"></param>
-            public void UpdateDistHeight(Single Factor, double ElapsedTime) 
-            {Position += Vector3.Scale(Up, Factor * (float)ElapsedTime);}
+            public void UpdateDistHeight(Single Factor, double ElapsedTime)
+            {Position += Up * (Factor * (float)ElapsedTime);}
 
             /// <summary>
             /// Update the camera and appy the view matrix to the scene.
             /// </summary>
             public override void Render()
             {
-                
+
                 //Update
                 Look.Y = (float)Math.Sin(Pitch);
                 Single temp = (float)Math.Cos(Pitch);
                 Look.X = (float)Math.Cos(Heading) * temp;
                 Look.Z = (float)Math.Sin(Heading) * temp;
-                Look.Normalize();
+                Look = Vector3.Normalize(Look);
 
                 //Roll
                 Up.X = (float)Math.Sin(Roll);
@@ -873,7 +871,7 @@ namespace EngineX
                 Up.Z = 0;
 
                 Right = Vector3.Cross(Look, Up);
-                Right.Normalize();
+                Right = Vector3.Normalize(Right);
 
                 LookAt = Position + Look;
 
@@ -940,7 +938,7 @@ namespace EngineX
 
                 // Determine world x-axis relative to camera's orientation.
                 worldXAxis = Vector3.Cross(WorldUp, Look);//, /
-                Vector3.Normalize(worldXAxis);
+                worldXAxis = Vector3.Normalize(worldXAxis);
 
                 // Determine shortest rotation to level camera with horizon.
                 perpAxis = Vector3.Cross(Right, worldXAxis);
@@ -994,7 +992,7 @@ namespace EngineX
             /// <param name="Factor"></param>
             /// <param name="ElapsedTime"></param>
             public void UpdateDistMain(float Factor, double ElapsedTime)
-            {Position += Vector3.Scale(Look, Factor * (float)ElapsedTime);}
+            {Position += Look * (Factor * (float)ElapsedTime);}
 
             /// <summary>
             /// Move the camera relativly left or right.
@@ -1002,7 +1000,7 @@ namespace EngineX
             /// <param name="Factor"></param>
             /// <param name="ElapsedTime"></param>
             public void UpdateDistStrafe(float Factor, double ElapsedTime)
-            {Position += Vector3.Scale(Right, Factor * (float)ElapsedTime);}
+            {Position += Right * (Factor * (float)ElapsedTime);}
 
             /// <summary>
             /// Move the camera relativly up or down.
@@ -1010,7 +1008,7 @@ namespace EngineX
             /// <param name="Factor"></param>
             /// <param name="ElapsedTime"></param>
             public void UpdateDistHeight(float Factor, double ElapsedTime)
-            {Position += Vector3.Scale(Up, Factor * (float)ElapsedTime);}
+            {Position += Up * (Factor * (float)ElapsedTime);}
 
             /// <summary>
             /// Render the camera and appy the view matrix to the scene.
@@ -1023,7 +1021,7 @@ namespace EngineX
                 CamRotationM = Matrix.RotationQuaternion(
                 Quaternion.Conjugate(CamRotationQ));
 
-                CamRotationQ.Normalize();
+                CamRotationQ = Quaternion.Normalize(CamRotationQ);
 
                 //Matrix.LookAtRH - Define
                 //zaxis = normal(cameraPosition - cameraTarget)
@@ -1193,7 +1191,7 @@ namespace EngineX
                 Up.Z = 0;
 
                 Right = Vector3.Cross(Target, Up);
-                Right.Normalize();
+                Right = Vector3.Normalize(Right);
 
 
                 //Render

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 using System.Windows.Forms;
 
@@ -56,33 +56,34 @@ namespace EngineX.GUI
             //device.TextureState[0].AlphaArgument1 = TextureArgument.Current;
 
 
-            device.RenderState.Lighting = false;
-            device.RenderState.ZBufferWriteEnable = false;
+            device.SetRenderState(RenderState.Lighting, false);
+            device.SetRenderState(RenderState.ZWriteEnable, false);
 
-            //device.RenderState.AlphaBlendOperation = BlendOperation.Add;
+            //device.SetRenderState(RenderState.BlendOperation, BlendOperation.Add);
 
-            device.RenderState.AlphaBlendOperation = BlendOperation.Add;
-            device.RenderState.SourceBlend = Blend.SourceAlpha;
-            device.RenderState.DestinationBlend = Blend.InvSourceAlpha;
+            device.SetRenderState(RenderState.BlendOperation, BlendOperation.Add);
+            device.SetRenderState(RenderState.SourceBlend, Blend.SourceAlpha);
+            device.SetRenderState(RenderState.DestinationBlend, Blend.InverseSourceAlpha);
 
 
             device.VertexFormat = CustomVertex.TransformedColored.Format;
 
             device.SetTexture(0, null);
 
-            device.RenderState.AlphaTestEnable = true;
-            device.RenderState.AlphaBlendEnable = true;
+            device.SetRenderState(RenderState.AlphaTestEnable, true);
+            device.SetRenderState(RenderState.AlphaBlendEnable, true);
             //device.DrawIndexedPrimitives(PrimitiveType.TriangleList,
             //                             0, renderInfo.BaseVertex, renderInfo.VertexCount, renderInfo.BaseIndex,
             //                             renderInfo.PrimitiveCount);
-            device.DrawIndexedUserPrimitives(PrimitiveType.TriangleList, renderInfo.Vertices.Length, renderInfo.Vertices.Length,
-                                             renderInfo.NumPrimitives, renderInfo.Indices, false, renderInfo.Vertices);
+            device.DrawIndexedUserPrimitives(PrimitiveType.TriangleList, 0, renderInfo.Vertices.Length,
+                                             renderInfo.NumPrimitives, renderInfo.Indices, Format.Index32,
+                                             renderInfo.Vertices, CustomVertex.TransformedColored.Stride);
 
 
-            device.RenderState.AlphaBlendEnable = false;
-            device.RenderState.AlphaTestEnable = false;
+            device.SetRenderState(RenderState.AlphaBlendEnable, false);
+            device.SetRenderState(RenderState.AlphaTestEnable, false);
 
-            device.RenderState.ZBufferWriteEnable = true;
+            device.SetRenderState(RenderState.ZWriteEnable, true);
                 //sprite.Begin(SpriteFlags.AlphaBlend | SpriteFlags.SortTexture);
                 //for (int i = renderInfo.BaseLabelIndex; i < renderInfo.LabelCount; i++)
                 //    spriteList[i].Render();

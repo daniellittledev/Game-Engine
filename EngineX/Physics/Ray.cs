@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Physics
 {
@@ -42,7 +41,7 @@ namespace EngineX.Physics
         public Ray()
         {
             type = RayType.infiniteDirection;
-            origin = direction = Vector3.Empty;
+            origin = direction = Vector3.Zero;
         }
 
         /// <summary>

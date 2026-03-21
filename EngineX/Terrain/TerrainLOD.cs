@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 using System.Windows.Forms;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace EngineX
 {
@@ -209,10 +209,10 @@ namespace EngineX
                 int count = 0;
 
 
-                vertexBuffer = new VertexBuffer(typeof(Vertex), vertexCount,
-                        device, Usage.None, Vertex.Format, Pool.Managed);
+                vertexBuffer = new VertexBuffer(device, vertexCount * Marshal.SizeOf(typeof(Vertex)),
+                        Usage.None, VertexFormat.None, Pool.Managed);
 
-                Verticies = (Vertex[])vertexBuffer.Lock(0, LockFlags.None);
+                Verticies = new Vertex[vertexCount];
 
                 for (int z = 0; z <= spanArray; z++)
                 {
@@ -257,12 +257,14 @@ namespace EngineX
                             Verticies[(z - 1) * span + x].Position);
 
                         Vector3 Normal = Vector3.Cross(Z, X);
-                        Normal.Normalize();
+                        Normal = Vector3.Normalize(Normal);
 
                         Verticies[z * span + x].Normal = Normal;
                     }
                 }
 
+                DataStream dsVB = vertexBuffer.Lock(0, 0, LockFlags.None);
+                dsVB.WriteRange(Verticies);
                 vertexBuffer.Unlock();
 
                 # endregion
@@ -270,7 +272,7 @@ namespace EngineX
                 # region // Setup the index Buffer =========================================================
 
                 indexCount = ((span - 1) * (span - 1)) * 6;
-                indexBuffer = new IndexBuffer(typeof(int), indexCount, device, Usage.Dynamic, Pool.SystemMemory);
+                indexBuffer = new IndexBuffer(device, indexCount * sizeof(int), Usage.Dynamic, Pool.SystemMemory, false);
 
                 // Remove
                 //indexBuffer2 = new IndexBuffer(typeof(int), 3, device, Usage.Dynamic, Pool.SystemMemory);
@@ -279,17 +281,17 @@ namespace EngineX
 
                 # region // Load the textures ==============================================================
 
-                highTexture = TextureLoader.FromFile(device, TextureHigh);
-                groundTexture = TextureLoader.FromFile(device, TextureGround);
-                lowTexture = TextureLoader.FromFile(device, TextureLow);
-                detailTexture = TextureLoader.FromFile(device, TextureDetail);
+                highTexture = Texture.FromFile(device, TextureHigh);
+                groundTexture = Texture.FromFile(device, TextureGround);
+                lowTexture = Texture.FromFile(device, TextureLow);
+                detailTexture = Texture.FromFile(device, TextureDetail);
 
                 # endregion
 
                 # region // Load the Effect ================================================================
 
                 string s;
-                terrainEffect = Effect.FromFile(device, @"..\..\Resources\shader.fx", null, "", ShaderFlags.None, null, out s);
+                terrainEffect = Effect.FromFile(device, @"..\..\Resources\shader.fx", null, ShaderFlags.None, null, out s);
                 if (s != "")
                 {
                     MessageBox.Show(s);
@@ -298,7 +300,7 @@ namespace EngineX
 
                 }
 
-                terrainEffect.Technique = "TransformTexture";
+                terrainEffect.Technique = new EffectHandle("TransformTexture");
 
                 transformMatrix = terrainEffect.GetParameter(null, "WorldViewProj");
                 ambientLight = terrainEffect.GetParameter(null, "light");
@@ -328,7 +330,7 @@ namespace EngineX
 					VertexElement.VertexDeclarationEnd};
                 vertexDeclaration = new VertexDeclaration(device, v);
 
-                StrideSize = VertexInformation.GetDeclarationVertexSize(v, 0);
+                StrideSize = Marshal.SizeOf(typeof(Vertex));
 
                 # endregion
 
@@ -425,11 +427,11 @@ namespace EngineX
             public void RefreshDeviceProperties()
             {
 
-                device.SamplerState[1].MinFilter = TextureFilter.Linear;
-                device.SamplerState[1].MagFilter = TextureFilter.Linear;
-                device.SamplerState[1].MipFilter = TextureFilter.Linear;
-                device.SamplerState[1].MagFilter = TextureFilter.Linear;
-                device.SamplerState[1].MipMapLevelOfDetailBias = 1;
+                device.SetSamplerState(1, SamplerState.MinFilter, TextureFilter.Linear);
+                device.SetSamplerState(1, SamplerState.MagFilter, TextureFilter.Linear);
+                device.SetSamplerState(1, SamplerState.MipFilter, TextureFilter.Linear);
+                device.SetSamplerState(1, SamplerState.MagFilter, TextureFilter.Linear);
+                device.SetSamplerState(1, SamplerState.MipMapLodBias, 1.0f);
 
             }
 
@@ -446,7 +448,10 @@ namespace EngineX
 
                 List<int> indices = new List<int>();
                 Root.GetIndicies(ref indices, span);
-                indexBuffer.SetData(indices.ToArray(), 0, LockFlags.Discard);
+                int[] indicesArray = indices.ToArray();
+                DataStream dsIB = indexBuffer.Lock(0, 0, LockFlags.Discard);
+                dsIB.WriteRange(indicesArray);
+                indexBuffer.Unlock();
                 primCount = indices.Count / 3;
                 indexCount = indices.Count;
 
@@ -699,7 +704,7 @@ namespace EngineX
                     // Next Loop..
                 }
                 distance = 0;
-                location = Vector3.Empty;
+                location = Vector3.Zero;
                 return false;
             }
 
@@ -774,7 +779,7 @@ namespace EngineX
                 else
                 {
                     distance = 0;
-                    point = Vector3.Empty;
+                    point = Vector3.Zero;
                     return false;
                 }
             }
@@ -848,12 +853,12 @@ namespace EngineX
                     }
                 }
 
-                public const VertexFormats Format =
-                   VertexFormats.Position | VertexFormats.Normal |
-                   VertexFormats.Texture0 | VertexFormats.Texture1 |
-                   VertexFormats.Texture2 | VertexFormats.Texture3 | VertexFormats.Texture4;
+                public const VertexFormat Format =
+                   VertexFormat.Position | VertexFormat.Normal |
+                   VertexFormat.Texture0 | VertexFormat.Texture1 |
+                   VertexFormat.Texture2 | VertexFormat.Texture3 | VertexFormat.Texture4;
 
-                //  | VertexFormats.Texture3
+                //  | VertexFormat.Texture3
 
                 public override string ToString()
                 {

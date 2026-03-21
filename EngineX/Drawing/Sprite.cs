@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Runtime.InteropServices;
 
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Drawing
 {
@@ -71,13 +72,14 @@ namespace EngineX.Drawing
             this.device = device;
             Texture1 = texture;
 
-            VertexB = new VertexBuffer(typeof(CustomVertex.PositionTextured), 4, device, Usage.None, CustomVertex.PositionTextured.Format, Pool.Managed);
-            CustomVertex.PositionTextured[] Vexticies = (CustomVertex.PositionTextured[])VertexB.Lock(0, LockFlags.None);
+            int stride = Marshal.SizeOf(typeof(CustomVertex.PositionTextured));
+            VertexB = new VertexBuffer(device, 4 * stride, Usage.None, CustomVertex.PositionTextured.Format, Pool.Managed);
+
+            var Vexticies = new CustomVertex.PositionTextured[4];
 
             switch (PositionPoint)
             {
                 case location.TopLeft:
-
                     Vexticies[0].Position = new Vector3(0, 0, 0);
                     Vexticies[1].Position = new Vector3(size.X, 0, 0);
                     Vexticies[2].Position = new Vector3(0, -size.Y, 0);
@@ -85,7 +87,6 @@ namespace EngineX.Drawing
                     break;
 
                 case location.TopRight:
-
                     Vexticies[0].Position = new Vector3(-size.X, 0, 0);
                     Vexticies[1].Position = new Vector3(0, 0, 0);
                     Vexticies[2].Position = new Vector3(-size.X, -size.Y, 0);
@@ -93,7 +94,6 @@ namespace EngineX.Drawing
                     break;
 
                 case location.BottomLeft:
-
                     Vexticies[0].Position = new Vector3(0, size.Y, 0);
                     Vexticies[1].Position = new Vector3(size.X, size.Y, 0);
                     Vexticies[2].Position = new Vector3(0, 0, 0);
@@ -101,7 +101,6 @@ namespace EngineX.Drawing
                     break;
 
                 case location.BottomRight:
-
                     Vexticies[0].Position = new Vector3(-size.X, size.Y, 0);
                     Vexticies[1].Position = new Vector3(0, size.Y, 0);
                     Vexticies[2].Position = new Vector3(-size.X, 0, 0);
@@ -109,7 +108,6 @@ namespace EngineX.Drawing
                     break;
 
                 case location.Centre:
-
                     Vexticies[0].Position = new Vector3(-size.X * 0.5f, size.Y * 0.5f, 0);
                     Vexticies[1].Position = new Vector3(size.X * 0.5f, size.Y * 0.5f, 0);
                     Vexticies[2].Position = new Vector3(-size.X * 0.5f, -size.Y * 0.5f, 0);
@@ -119,22 +117,17 @@ namespace EngineX.Drawing
                 default:
                     break;
             }
-            //Phone: 0414
 
-            Vexticies[0].Tu = 0;
-            Vexticies[1].Tu = 1;
-            Vexticies[2].Tu = 0;
-            Vexticies[3].Tu = 1;
+            Vexticies[0].Tu = 0; Vexticies[0].Tv = 0;
+            Vexticies[1].Tu = 1; Vexticies[1].Tv = 0;
+            Vexticies[2].Tu = 0; Vexticies[2].Tv = 1;
+            Vexticies[3].Tu = 1; Vexticies[3].Tv = 1;
 
-            Vexticies[0].Tv = 0;
-            Vexticies[1].Tv = 0;
-            Vexticies[2].Tv = 1;
-            Vexticies[3].Tv = 1;
-
+            var ds = VertexB.Lock(0, 0, LockFlags.None);
+            ds.WriteRange(Vexticies);
             VertexB.Unlock();
 
             RenderMatrix1 = Matrix.Identity;
-
         }
 
         public void Update()
@@ -144,9 +137,9 @@ namespace EngineX.Drawing
 
         public void Render()
         {
-            device.Transform.World = RenderMatrix2;
+            device.SetTransform(TransformState.World, RenderMatrix2);
             device.VertexFormat = CustomVertex.PositionTextured.Format;
-            device.SetStreamSource(0, VertexB, 0);
+            device.SetStreamSource(0, VertexB, 0, Marshal.SizeOf(typeof(CustomVertex.PositionTextured)));
             device.SetTexture(0, Texture1);
             device.DrawPrimitives(PrimitiveType.TriangleStrip, 0, 2);
         }
