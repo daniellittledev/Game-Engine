@@ -1,10 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
-using Microsoft.DirectX.Security;
 using System.Windows.Forms;
 using System.Drawing;
 

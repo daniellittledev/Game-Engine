@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Physics
 {
@@ -22,7 +22,7 @@ namespace EngineX.Physics
         public static Matrix InvertMatrix3(Matrix m)
         {
             m.M44 = 1;
-            m.Invert();
+            m = Matrix.Invert(m);
             m.M44 = 0;
             return m;
         }
@@ -103,7 +103,9 @@ namespace EngineX.Physics
 
         public Matrix3 Inverse()
         {
-            return Matrix3.FromMatrix4(Matrix.Invert(Matrix3.ToMatrix4(this)));
+            Matrix m = Matrix3.ToMatrix4(this);
+            m = Matrix.Invert(m);
+            return Matrix3.FromMatrix4(m);
         }
 
         public Matrix3 Transpose()

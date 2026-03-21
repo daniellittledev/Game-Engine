@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Physics.BoundingVolumes
 {
@@ -73,8 +72,9 @@ namespace EngineX.Physics.BoundingVolumes
             // Compute bounding box min and max
             using (VertexBuffer buffer = objMesh.VertexBuffer)
             {
-                GraphicsStream GStream = buffer.Lock(0, 0, LockFlags.None);
-                Geometry.ComputeBoundingBox(GStream, objMesh.NumberVertices, objMesh.VertexFormat, out min, out max);
+                DataStream GStream = buffer.Lock(0, 0, LockFlags.None);
+                int stride = GetFVFStride(objMesh.VertexFormat);
+                ComputeBoundingBox(GStream, objMesh.NumberVertices, stride, out min, out max);
                 buffer.Unlock();
             }
 
@@ -107,7 +107,9 @@ namespace EngineX.Physics.BoundingVolumes
         public override void Transform(Matrix transform)
         {
             currentPosition = Vector3.TransformCoordinate(position, transform);
-            Vector3[] currentBounds = Vector3.TransformCoordinate(bounds, transform);
+            Vector3[] currentBounds = new Vector3[bounds.Length];
+            for (int i = 0; i < bounds.Length; i++)
+                currentBounds[i] = Vector3.TransformCoordinate(bounds[i], transform);
 
             currentMin.X = currentMax.X = bounds[0].X;
             currentMin.Y = currentMax.Y = bounds[0].Y;
@@ -136,6 +138,45 @@ namespace EngineX.Physics.BoundingVolumes
 
             }
 
+        }
+
+        /// <summary>
+        /// Computes the FVF vertex stride in bytes from a VertexFormat.
+        /// </summary>
+        internal static int GetFVFStride(VertexFormat format)
+        {
+            int size = 0;
+            if ((format & VertexFormat.Position) != 0) size += 12;
+            if ((format & VertexFormat.Normal) != 0) size += 12;
+            if ((format & VertexFormat.PointSize) != 0) size += 4;
+            if ((format & VertexFormat.Diffuse) != 0) size += 4;
+            if ((format & VertexFormat.Specular) != 0) size += 4;
+            int numTex = ((int)format >> 8) & 0xF;
+            size += numTex * 8;
+            return size;
+        }
+
+        /// <summary>
+        /// Manually computes a bounding box by reading vertex positions from a DataStream.
+        /// Replaces Geometry.ComputeBoundingBox which is not available in SharpDX.
+        /// </summary>
+        internal static void ComputeBoundingBox(DataStream stream, int numVertices, int stride, out Vector3 outMin, out Vector3 outMax)
+        {
+            long start = stream.Position;
+            Vector3 first = stream.Read<Vector3>();
+            outMin = outMax = first;
+            for (int i = 1; i < numVertices; i++)
+            {
+                stream.Position = start + i * stride;
+                Vector3 v = stream.Read<Vector3>();
+                if (v.X < outMin.X) outMin.X = v.X;
+                if (v.Y < outMin.Y) outMin.Y = v.Y;
+                if (v.Z < outMin.Z) outMin.Z = v.Z;
+                if (v.X > outMax.X) outMax.X = v.X;
+                if (v.Y > outMax.Y) outMax.Y = v.Y;
+                if (v.Z > outMax.Z) outMax.Z = v.Z;
+            }
+            stream.Position = start;
         }
     }
 }

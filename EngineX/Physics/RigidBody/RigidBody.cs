@@ -2,10 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
-using DX = Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
+using DX = SharpDX.Direct3D9;
 
 using EngineX.Physics.BoundingVolumes;
 
@@ -97,7 +96,7 @@ namespace EngineX.Physics.RigidBody
         {
 
             roation = Quaternion.Identity;
-            position = Vector3.Empty;
+            position = Vector3.Zero;
             scale = Matrix.Identity;
             frictionCoefficient = 1;
 
@@ -111,26 +110,24 @@ namespace EngineX.Physics.RigidBody
             try
             {
                 // Load mesh =====================================================================================================
-                GraphicsStream outputAdjacency;
                 ExtendedMaterial[] materials;
                 EffectInstance[] effects;
-                objMesh = DX.Mesh.FromFile(Path + Mesh,
-                    MeshFlags.Managed, device, out outputAdjacency, out materials, out effects);
+                objMesh = DX.Mesh.FromFile(device, Path + Mesh, MeshFlags.Managed);
+                materials = objMesh.GetMaterials();
+                effects = objMesh.GetEffects();
 
                 // Not using effects
                 effects = null;
 
                 // Add normals if it doesn't have any
-                if ((objMesh.VertexFormat & VertexFormats.PositionNormal) != VertexFormats.PositionNormal)
+                if ((objMesh.VertexFormat & VertexFormat.Normal) != VertexFormat.Normal)
                 {
-                    Mesh tempMesh = objMesh.Clone(objMesh.Options.Value,
-                        objMesh.VertexFormat | VertexFormats.PositionNormal | VertexFormats.Texture1, device);
+                    Mesh tempMesh = objMesh.Clone(MeshFlags.Managed,
+                        objMesh.VertexFormat | VertexFormat.Normal | VertexFormat.Texture1, device);
                     tempMesh.ComputeNormals();
                     objMesh.Dispose();
                     objMesh = tempMesh;
                 }
-                outputAdjacency.Dispose();
-                outputAdjacency = null;
                 subsetCount = objMesh.GetAttributeTable().Length;
 
                 // Extract the material properties and texture names.
@@ -138,13 +135,13 @@ namespace EngineX.Physics.RigidBody
                 material = new Material[materials.Length];
                 for (int i = 0; i < materials.Length; i++)
                 {
-                    material[i] = materials[i].Material3D;
+                    material[i] = materials[i].MaterialD3D;
 
                     // Create the texture.
-                    if (materials[i].TextureFilename != null && materials[i].TextureFilename.Length > 0)
+                    if (materials[i].TextureFileName != null && materials[i].TextureFileName.Length > 0)
                     {
-                        string temp = materials[i].TextureFilename;
-                        texture[i] = TextureLoader.FromFile(device, Path + temp);
+                        string temp = materials[i].TextureFileName;
+                        texture[i] = Texture.FromFile(device, Path + temp);
                     }
                     else
                     {
@@ -167,12 +164,15 @@ namespace EngineX.Physics.RigidBody
                 invMass = volume; // 1 / mass
 
                 // Transform vertices in original mesh to make the center of mass (0,0,0)
-                CustomVertex.PositionNormalTextured[] vertList = (CustomVertex.PositionNormalTextured[])objMesh.LockVertexBuffer(
-                    typeof(CustomVertex.PositionNormalTextured), LockFlags.None, objMesh.NumberVertices);
+                CustomVertex.PositionNormalTextured[] vertList = new CustomVertex.PositionNormalTextured[objMesh.NumberVertices];
+                DataStream dsVB = objMesh.VertexBuffer.Lock(0, 0, LockFlags.None);
+                dsVB.ReadRange(vertList, 0, objMesh.NumberVertices);
                 // For each Vertex
                 for (int i = 0; i < vertList.Length; i++)
                 { vertList[i].Position = (vertList[i].Position - centerOfMass); }
-                objMesh.UnlockVertexBuffer();
+                dsVB.Position = 0;
+                dsVB.WriteRange(vertList);
+                objMesh.VertexBuffer.Unlock();
 
                 // Transform the polyhedron as well
                 polyhedron.Transform(Matrix.Translation(-1 * centerOfMass));
@@ -373,7 +373,7 @@ namespace EngineX.Physics.RigidBody
             position += verlocity * elapsedTime;
 
             // Set the Rendering matrix
-            roation.Normalize();
+            roation = Quaternion.Normalize(roation);
             Matrix rotationalDisplacement = Matrix.RotationQuaternion(Quaternion.Conjugate(roation));
             renderMatrix = rotationalDisplacement * Matrix.Translation(position); //Matrix.RotationQuaternion(roation)
 
@@ -429,7 +429,7 @@ namespace EngineX.Physics.RigidBody
         /// <returns></returns>
         private Vector3 CalcuateFriction(Vector3 value)
         {
-            Vector3 result = Vector3.Empty;
+            Vector3 result = Vector3.Zero;
             if (value.X != 0)
                 result.X = (value.X * value.X * constantFriction) / value.X;
             if (value.Y != 0)
@@ -583,14 +583,14 @@ namespace EngineX.Physics.RigidBody
             float torque = LineToPoint(position, force, this.position);
 
             // Update spin
-            rotationVerlocity += (Vector3.Scale(force, distance) *
+            rotationVerlocity += (force * distance *
                 torque * 0.5f) * invMass;
 
             // Update verlocity
             if (this.position != position)
             {
                 float multiplyer = (float)Math.Pow(0.5f, torque);
-                verlocity += Vector3.Scale(force, distance * multiplyer) * invMass;
+                verlocity += force * (distance * multiplyer) * invMass;
             }
             else
             {
@@ -638,7 +638,7 @@ namespace EngineX.Physics.RigidBody
         private Vector3 DevideVal(Vector3 vector, float value)
         {
             if (value == 0)
-                return Vector3.Empty;
+                return Vector3.Zero;
 
             float invVal = 1 / value;
             return new Vector3(
@@ -667,7 +667,7 @@ namespace EngineX.Physics.RigidBody
         /// <returns></returns>
         private Vector3 DevideVec(float value, Vector3 vector)
         {
-            Vector3 result = Vector3.Empty;
+            Vector3 result = Vector3.Zero;
             if (vector.X != 0)
                 result.X = value / vector.X;
             if (vector.Y != 0)

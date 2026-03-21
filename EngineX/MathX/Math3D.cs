@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 using System.Windows.Forms;
 using System.Drawing;
@@ -32,13 +31,13 @@ namespace EngineX.MathX
         /// <param name="Binormal"></param>
         public static void GenerateTBN(Vector3 pos1, Vector3 pos2, Vector3 pos3, Vector2 w0, Vector2 w1, Vector2 w2, ref Vector3 Normal, ref Vector3 Tangent, ref Vector3 Binormal)
         {
-            Vector3 vNorm = Vector3.Empty;
+            Vector3 vNorm = Vector3.Zero;
 
             Vector3 p0 = pos2 - pos1;
             Vector3 p1 = pos3 - pos1;
 
             vNorm = Vector3.Cross(p0, p1);
-            vNorm.Normalize();
+            vNorm = Vector3.Normalize(vNorm);
 
             float x1 = (float)(pos2.X - pos1.X);
             float x2 = (float)(pos3.X - pos1.X);
@@ -69,15 +68,15 @@ namespace EngineX.MathX
             Vector3 vBi = tDir;
 
             vTan = (vTan - vNorm * Vector3.Dot(vNorm, vTan));
-            vTan.Normalize();
+            vTan = Vector3.Normalize(vTan);
 
             if (Vector3.Dot(Vector3.Cross(vNorm, vTan), vBi) < 0)
             {
-                vTan.Scale(-1);
+                vTan *= -1;
             }
 
             vBi = Vector3.Cross(vTan, vNorm);
-            vBi.Normalize();
+            vBi = Vector3.Normalize(vBi);
 
             Normal = vNorm;
             Tangent = vTan;
@@ -93,13 +92,13 @@ namespace EngineX.MathX
         /// <returns></returns>
         public static Vector3 GenerateNormal(Vector3 p0, Vector3 p1, Vector3 p2)
         {
-            Vector3 vNorm = Vector3.Empty;
+            Vector3 vNorm = Vector3.Zero;
 
             Vector3 v0 = p1 - p0;
             Vector3 v1 = p2 - p0;
 
             vNorm = Vector3.Cross(v0, v1);
-            vNorm.Normalize();
+            vNorm = Vector3.Normalize(vNorm);
 
             return vNorm;
         }
@@ -275,7 +274,7 @@ namespace EngineX.MathX
         /// <returns></returns>
         public static Vector3 DevideVec(float value, Vector3 vector)
         {
-            Vector3 result = Vector3.Empty;
+            Vector3 result = Vector3.Zero;
             if (vector.X != 0)
                 result.X = value / vector.X;
             if (vector.Y != 0)

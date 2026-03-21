@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 using System.Windows.Forms;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace EngineX
 {
@@ -167,8 +167,8 @@ namespace EngineX
                 TexSurface = SurfaceTex;
                 TexDetail = Detailtex;
 
-                Surface = TextureLoader.FromFile(Device1, SurfaceTex); //, 0,0, 1, Usage.AutoGenerateMipMap , Format.R5G6B5 , Pool.SystemMemory , Filter.None, Filter.None, 0 );
-                Detail = TextureLoader.FromFile(Device1, Detailtex); //, 0, 0, 1, Usage.AutoGenerateMipMap, Format.R5G6B5, Pool.SystemMemory, Filter.None, Filter.None, 0);
+                Surface = Texture.FromFile(Device1, SurfaceTex); //, 0,0, 1, Usage.AutoGenerateMipMap , Format.R5G6B5 , Pool.SystemMemory , Filter.None, Filter.None, 0 );
+                Detail = Texture.FromFile(Device1, Detailtex); //, 0, 0, 1, Usage.AutoGenerateMipMap, Format.R5G6B5, Pool.SystemMemory, Filter.None, Filter.None, 0);
 
             }
 
@@ -177,8 +177,8 @@ namespace EngineX
             /// </summary>
             public void ReloadTextures()
             {
-                Surface = TextureLoader.FromFile(Device1, TexSurface);
-                Detail = TextureLoader.FromFile(Device1, TexDetail);
+                Surface = Texture.FromFile(Device1, TexSurface);
+                Detail = Texture.FromFile(Device1, TexDetail);
             }
 
             /// <summary>
@@ -187,12 +187,12 @@ namespace EngineX
             public void RefreshDeviceProperties()
             {
 
-                Device1.SamplerState[1].MinFilter = TextureFilter.Linear;
-                Device1.SamplerState[1].MagFilter = TextureFilter.Linear;
-                Device1.SamplerState[1].MipFilter = TextureFilter.Linear;
-                Device1.SamplerState[1].MagFilter = TextureFilter.Linear;
-                Device1.SamplerState[1].MipMapLevelOfDetailBias = 1;
-                //Device1.SamplerState[1].SrgbTexture = true;
+                Device1.SetSamplerState(1, SamplerState.MinFilter, TextureFilter.Linear);
+                Device1.SetSamplerState(1, SamplerState.MagFilter, TextureFilter.Linear);
+                Device1.SetSamplerState(1, SamplerState.MipFilter, TextureFilter.Linear);
+                Device1.SetSamplerState(1, SamplerState.MagFilter, TextureFilter.Linear);
+                Device1.SetSamplerState(1, SamplerState.MipMapLodBias, 1.0f);
+                //Device1.SetSamplerState(1, SamplerState.SrgbTexture, true);
 
             }
 
@@ -206,9 +206,9 @@ namespace EngineX
             {
 
                 // Set up the vertex buffer
-                VertexB = new VertexBuffer(typeof(CustomVertex2.PositionTextured2), VertexCount, Device1, Usage.None, CustomVertex2.PositionTextured2.Format, Pool.Managed);
+                VertexB = new VertexBuffer(Device1, VertexCount * Marshal.SizeOf(typeof(CustomVertex2.PositionTextured2)), Usage.None, VertexFormat.None, Pool.Managed);
                 CustomVertex2.PositionTextured2[] Verticies;
-                Verticies = (CustomVertex2.PositionTextured2[])VertexB.Lock(0, LockFlags.None);
+                Verticies = new CustomVertex2.PositionTextured2[VertexCount];
 
 
                 Single TexX1;
@@ -259,10 +259,12 @@ namespace EngineX
 
 
 
+                DataStream dsVB = VertexB.Lock(0, 0, LockFlags.None);
+                dsVB.WriteRange(Verticies);
                 VertexB.Unlock();
 
                 // Setup the index Buffer
-                IndexB = new IndexBuffer(typeof(int), IndexCount, Device1, Usage.Dynamic, Pool.SystemMemory);
+                IndexB = new IndexBuffer(Device1, IndexCount * sizeof(int), Usage.Dynamic, Pool.SystemMemory, false);
 
             }
 
@@ -274,7 +276,8 @@ namespace EngineX
 
 
                 int[] Indicies;
-                Indicies = (int[])IndexB.Lock(0, LockFlags.Discard);
+                Indicies = new int[IndexCount];
+                DataStream dsIB = IndexB.Lock(0, 0, LockFlags.Discard);
 
 
                 int TL, BR, BL, TR;
@@ -310,6 +313,7 @@ namespace EngineX
                     }
                 }
 
+                dsIB.WriteRange(Indicies);
                 IndexB.Unlock();
 
             }
@@ -463,11 +467,11 @@ namespace EngineX
                 // The Vertices
                 Device1.SetStreamSource(0, VertexB, 0, CustomVertex2.PositionTextured2.StrideSize);
 
-                Device1.SetTextureStageState(0, TextureStageStates.ColorArgument1, (int)TextureArgument.TextureColor);
-                Device1.SetTextureStageState(0, TextureStageStates.ColorOperation, (int)TextureOperation.SelectArg1);
-                Device1.SetTextureStageState(1, TextureStageStates.ColorArgument1, (int)TextureArgument.Current);
-                Device1.SetTextureStageState(1, TextureStageStates.ColorArgument2, (int)TextureArgument.TextureColor);
-                Device1.SetTextureStageState(1, TextureStageStates.ColorOperation, (int)TextureOperation.AddSigned);
+                Device1.SetTextureStageState(0, TextureStage.ColorArg1, TextureArgument.Texture);
+                Device1.SetTextureStageState(0, TextureStage.ColorOperation, TextureOperation.SelectArg1);
+                Device1.SetTextureStageState(1, TextureStage.ColorArg1, TextureArgument.Current);
+                Device1.SetTextureStageState(1, TextureStage.ColorArg2, TextureArgument.Texture);
+                Device1.SetTextureStageState(1, TextureStage.ColorOperation, TextureOperation.AddSigned);
 
                 // The Indices
                 Device1.Indices = IndexB;

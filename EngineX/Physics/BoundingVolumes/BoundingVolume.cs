@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-using Microsoft;
-using Microsoft.DirectX;
-using Microsoft.DirectX.Direct3D;
+using SharpDX;
+using SharpDX.Direct3D9;
 
 namespace EngineX.Physics.BoundingVolumes
 {
@@ -33,7 +32,7 @@ namespace EngineX.Physics.BoundingVolumes
         /// <returns>Boolean: Collision has occured</returns>
         public static bool BoundingOrientatedBoxIntersect(BoundingOrientatedBox BoxA, BoundingOrientatedBox BoxB, out Vector3 normal, out float depth)
         {
-            normal = Vector3.Empty;
+            normal = Vector3.Zero;
             depth = 0.0f;
 
             float p0, r0, p1, r1;
@@ -132,8 +131,8 @@ namespace EngineX.Physics.BoundingVolumes
         /// <returns>Boolean: Collision has occured</returns>
         public static bool BoundingSphereIntersection(BoundingSphere SphereA, BoundingSphere SphereB, out Vector3 normal, out float depth, out Vector3 point)
         {
-            point = Vector3.Empty;
-            normal = Vector3.Empty;
+            point = Vector3.Zero;
+            normal = Vector3.Zero;
             depth = 0.0f;
 
             // Distance
@@ -149,7 +148,7 @@ namespace EngineX.Physics.BoundingVolumes
             // Calculate depth and normal
             depth = Math.Abs(Distance);
             normal = SphereA.Centre - SphereB.Centre;
-            normal.Normalize();
+            normal = Vector3.Normalize(normal);
 
             // Approx point of intersection
             point = SphereA.Centre + (normal * SphereA.Radius);
@@ -193,7 +192,7 @@ namespace EngineX.Physics.BoundingVolumes
         public static bool BoundingBoxIntersection(BoundingBox BoxA, BoundingBox BoxB, out Vector3 penetration)
         {
             // out parameters
-            penetration = Vector3.Empty;
+            penetration = Vector3.Zero;
 
             // local variables
             float length;
@@ -234,8 +233,8 @@ namespace EngineX.Physics.BoundingVolumes
         public static bool BoundingBoxIntersection(BoundingBox BoxA, BoundingBox BoxB, out Vector3 penetration, out Vector3 point)
         {
             // out parameters
-            penetration = Vector3.Empty;
-            point = Vector3.Empty;
+            penetration = Vector3.Zero;
+            point = Vector3.Zero;
 
             // local variables
             float length;
@@ -262,7 +261,7 @@ namespace EngineX.Physics.BoundingVolumes
                 return false;
 
             // Average of all points inside other
-            Vector3 total = Vector3.Empty;
+            Vector3 total = Vector3.Zero;
             int count = 0;
 
             // Box A points
@@ -308,7 +307,7 @@ namespace EngineX.Physics.BoundingVolumes
         {
 
             // out parameters
-            Vector3 penetration = Vector3.Empty;
+            Vector3 penetration = Vector3.Zero;
 
             // local variables
             float length;
